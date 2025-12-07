@@ -205,11 +205,18 @@ All systems supported by EmulatorJS, including but not limited to:
 - Save state loading: < 2 seconds
 
 **Mobile-Specific Requirements:**
-- Virtual gamepad overlay (inspired by ROMM)
-- Customizable button positions
-- Haptic feedback on button presses
+- **Native EmulatorJS virtual gamepad overlay** (built-in mobile controls)
+- Layout implementation inspired by ROMM (reference: https://github.com/rommapp/romm)
+- **Optimized for Portrait Mode (Hochformat)**:
+  - D-Pad positioned lower-left for thumb reach
+  - Action buttons (A/B/X/Y) positioned lower-right
+  - Start/Select buttons centered at bottom
+  - Shoulder buttons (L/R) at top corners
+  - Transparent overlay with haptic feedback
+- Responsive button sizing for different screen sizes
 - Prevent screen sleep during gameplay
 - Auto-save on app backgrounding
+- Touch zones optimized for thumb ergonomics in portrait orientation
 
 #### 4. User Management & Authentication
 **As a user, I can:**
@@ -349,6 +356,71 @@ All systems supported by EmulatorJS, including but not limited to:
 - Vite or Create React App
 - TypeScript for type safety
 - ESLint + Prettier for code quality
+
+#### EmulatorJS Configuration
+
+**Self-Hosted Setup:**
+```javascript
+// EmulatorJS will be hosted locally, not via CDN
+const EJS_player = new EmulatorJS('#game', {
+  // Core settings
+  dataPath: '/emulatorjs/',  // Local path to EmulatorJS files
+  system: 'nes',             // Dynamic based on game
+  gameName: 'Super Mario Bros',
+  gameUrl: '/api/roms/123/download',  // MinIO URL via backend
+
+  // Mobile Controls (CRITICAL)
+  mobileControls: true,      // Enable native mobile overlay
+
+  // Portrait Mode Optimization
+  virtualGamepad: {
+    enabled: true,
+    layout: 'portrait',      // Portrait-optimized layout
+    style: 'romm',           // ROMM-style positioning
+    opacity: 0.7,            // Semi-transparent buttons
+    haptic: true,            // Haptic feedback
+
+    // Button positions (CSS-based, portrait mode)
+    dpad: {
+      bottom: '80px',
+      left: '20px',
+      size: '120px'
+    },
+    actionButtons: {
+      bottom: '80px',
+      right: '20px',
+      size: '50px'
+    },
+    startSelect: {
+      bottom: '20px',
+      centered: true,
+      size: '40px'
+    },
+    shoulders: {
+      top: '10px',
+      size: '60px'
+    }
+  },
+
+  // Performance
+  threads: navigator.hardwareConcurrency || 4,
+
+  // Save states
+  saveStateName: 'user_123_game_456',
+
+  // Callbacks
+  onReady: () => console.log('Emulator ready'),
+  onSave: (state) => uploadSaveState(state),
+  onLoad: () => console.log('Game loaded')
+});
+```
+
+**Key Implementation Notes:**
+- **No CDN:** All EmulatorJS files served from `/public/emulatorjs/`
+- **ROMM Reference:** Study ROMM's mobile control implementation
+- **Portrait First:** Default to portrait, allow landscape as secondary
+- **Touch Optimization:** Ensure 44x44px minimum touch targets
+- **Performance:** Lazy-load emulator cores, cache aggressively
 
 #### Backend
 **Language:** Node.js (TypeScript) or Python
@@ -679,11 +751,34 @@ services:
 - Push notifications (optional)
 
 ### Touch Controls
-- Virtual gamepad overlay (EmulatorJS integration)
-- Customizable button layout
-- Haptic feedback API
-- Multi-touch support
-- Gesture controls (swipe for menu)
+**EmulatorJS Native Mobile Controls**
+
+EmulatorJS comes with built-in mobile overlay controls that we will use directly:
+
+- **Portrait Mode Optimization (Primary Focus)**:
+  - Use EmulatorJS's native virtual gamepad overlay
+  - Layout matches ROMM implementation style
+  - D-Pad: Lower-left corner, optimized for left thumb
+  - Action Buttons (A/B/X/Y): Lower-right corner, optimized for right thumb
+  - Start/Select: Bottom-center, easily accessible
+  - L/R Shoulder Buttons: Top corners when needed
+  - Semi-transparent buttons with visual feedback
+
+- **EmulatorJS Features to Enable**:
+  - Built-in touch handlers
+  - Multi-touch support (simultaneous button presses)
+  - Haptic feedback API integration
+  - Auto-hide controls option
+  - Button opacity adjustment
+
+- **Additional Enhancements**:
+  - Screen orientation lock to portrait during gameplay
+  - Gesture controls: Swipe down from top for menu overlay
+  - Double-tap to toggle fullscreen
+  - Long-press for quick save
+
+**Reference Implementation:** ROMM's mobile interface
+**Documentation:** EmulatorJS mobile controls configuration
 
 ---
 
@@ -855,9 +950,11 @@ MFA_ISSUER=CaptainBitbeard
   - [ ] UI component library
   - [ ] Authentication flow
 - [ ] EmulatorJS integration
-  - [ ] Self-hosted setup
-  - [ ] Basic game loading
-  - [ ] Mobile controls
+  - [ ] Self-hosted library setup (not CDN)
+  - [ ] Basic game loading and ROM handling
+  - [ ] Enable native mobile overlay controls
+  - [ ] Configure portrait mode layout (ROMM-style)
+  - [ ] Test touch input on mobile devices
 
 ### Phase 2: Core Features (Weeks 5-8)
 **Goal:** Complete game library management
