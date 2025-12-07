@@ -1,7 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import { gameService } from '../services/game.service';
 import { AppError } from '../middleware/error-handler';
-import { logger } from '../utils/logger';
 
 export class GameController {
   /**
@@ -206,7 +205,7 @@ export class GameController {
    * Get supported systems
    * GET /api/games/systems
    */
-  async getSystems(req: Request, res: Response, next: NextFunction): Promise<void> {
+  async getSystems(_req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const systems = await gameService.getSupportedSystems();
 

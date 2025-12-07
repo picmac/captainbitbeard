@@ -77,7 +77,7 @@ export class GameService {
       logger.info(`Game created: ${game.title} (${game.id})`);
       return game;
     } catch (error) {
-      logger.error('Failed to create game', error);
+      logger.error({ err: error }, 'Failed to create game');
       throw error;
     }
   }
@@ -236,7 +236,7 @@ export class GameService {
 
       logger.info(`Game deleted: ${game.title} (${id})`);
     } catch (error) {
-      logger.error(`Failed to delete game: ${id}`, error);
+      logger.error({ err: error }, `Failed to delete game: ${id}`);
       throw error;
     }
   }

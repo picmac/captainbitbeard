@@ -2,6 +2,7 @@ import request from 'supertest';
 import express from 'express';
 import gameRoutes from '../../routes/game.routes';
 import { gameService } from '../../services/game.service';
+import { errorHandler } from '../../middleware/error-handler';
 
 // Mock game service
 jest.mock('../../services/game.service', () => ({
@@ -25,6 +26,7 @@ describe('Game API Endpoints', () => {
     app = express();
     app.use(express.json());
     app.use('/api/games', gameRoutes);
+    app.use(errorHandler);
   });
 
   beforeEach(() => {

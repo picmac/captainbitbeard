@@ -48,7 +48,7 @@ export class MinioService {
       await this.client.setBucketPolicy(this.bucket, JSON.stringify(policy));
       logger.info('MinIO initialized successfully');
     } catch (error) {
-      logger.error('Failed to initialize MinIO', error);
+      logger.error({ err: error }, 'Failed to initialize MinIO');
       throw error;
     }
   }
@@ -78,7 +78,7 @@ export class MinioService {
       logger.info(`ROM uploaded: ${objectName}`);
       return objectName;
     } catch (error) {
-      logger.error(`Failed to upload ROM: ${fileName}`, error);
+      logger.error({ err: error }, `Failed to upload ROM: ${fileName}`);
       throw error;
     }
   }
@@ -107,7 +107,7 @@ export class MinioService {
       logger.info(`Cover uploaded: ${objectName}`);
       return this.getPublicUrl(objectName);
     } catch (error) {
-      logger.error(`Failed to upload cover for game: ${gameId}`, error);
+      logger.error({ err: error }, `Failed to upload cover for game: ${gameId}`);
       throw error;
     }
   }
@@ -137,7 +137,7 @@ export class MinioService {
       logger.info(`Screenshot uploaded: ${objectName}`);
       return this.getPublicUrl(objectName);
     } catch (error) {
-      logger.error(`Failed to upload screenshot: ${gameId}/${index}`, error);
+      logger.error({ err: error }, `Failed to upload screenshot: ${gameId}/${index}`);
       throw error;
     }
   }
@@ -166,7 +166,7 @@ export class MinioService {
       logger.info(`BIOS uploaded: ${objectName}`);
       return objectName;
     } catch (error) {
-      logger.error(`Failed to upload BIOS: ${fileName}`, error);
+      logger.error({ err: error }, `Failed to upload BIOS: ${fileName}`);
       throw error;
     }
   }
@@ -196,7 +196,7 @@ export class MinioService {
       logger.info(`Save state uploaded: ${objectName}`);
       return objectName;
     } catch (error) {
-      logger.error(`Failed to upload save state: ${userId}/${gameId}`, error);
+      logger.error({ err: error }, `Failed to upload save state: ${userId}/${gameId}`);
       throw error;
     }
   }
@@ -213,7 +213,7 @@ export class MinioService {
       );
       return url;
     } catch (error) {
-      logger.error(`Failed to get presigned URL for: ${romPath}`, error);
+      logger.error({ err: error }, `Failed to get presigned URL for: ${romPath}`);
       throw error;
     }
   }
@@ -226,7 +226,7 @@ export class MinioService {
       const stream = await this.client.getObject(this.bucket, romPath);
       return stream;
     } catch (error) {
-      logger.error(`Failed to stream ROM: ${romPath}`, error);
+      logger.error({ err: error }, `Failed to stream ROM: ${romPath}`);
       throw error;
     }
   }
@@ -239,7 +239,7 @@ export class MinioService {
       await this.client.removeObject(this.bucket, objectName);
       logger.info(`File deleted: ${objectName}`);
     } catch (error) {
-      logger.error(`Failed to delete file: ${objectName}`, error);
+      logger.error({ err: error }, `Failed to delete file: ${objectName}`);
       throw error;
     }
   }
@@ -272,7 +272,7 @@ export class MinioService {
         etag: stat.etag,
       };
     } catch (error) {
-      logger.error(`Failed to get file info: ${objectName}`, error);
+      logger.error({ err: error }, `Failed to get file info: ${objectName}`);
       throw error;
     }
   }
@@ -301,7 +301,7 @@ export class MinioService {
       });
 
       stream.on('error', (err) => {
-        logger.error(`Failed to list files with prefix: ${prefix}`, err);
+        logger.error({ err }, `Failed to list files with prefix: ${prefix}`);
         reject(err);
       });
 

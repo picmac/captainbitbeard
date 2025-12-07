@@ -1,5 +1,3 @@
-import { PrismaClient } from '@prisma/client';
-
 // Mock Prisma Client
 jest.mock('@prisma/client', () => {
   const mockPrismaClient = {

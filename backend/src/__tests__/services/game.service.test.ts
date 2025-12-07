@@ -1,6 +1,5 @@
 import { GameService } from '../../services/game.service';
 import { PrismaClient } from '@prisma/client';
-import { minioService } from '../../services/minio.service';
 
 // Get mocked Prisma instance
 const prisma = new PrismaClient() as any;
