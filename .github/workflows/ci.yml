@@ -96,6 +96,9 @@ jobs:
     name: Security - Dependency & Container Scan
     runs-on: self-hosted
     needs: [backend-test, frontend-test]
+    permissions:
+      security-events: write
+      contents: read
 
     steps:
       - name: 📥 Checkout code
