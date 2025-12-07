@@ -6,6 +6,7 @@ import { config } from './config';
 import { logger } from './utils/logger';
 import { errorHandler } from './middleware/error-handler';
 import { requestLogger } from './middleware/request-logger';
+import { minioService } from './services/minio.service';
 import routes from './routes';
 
 const app: Application = express();
@@ -43,30 +44,44 @@ app.use('/api', routes);
 // Error handling
 app.use(errorHandler);
 
-// Start server
-const server = app.listen(config.port, () => {
-  logger.info(`🏴‍☠️ Captain Bitbeard Backend running on port ${config.port}`);
-  logger.info(`📊 Environment: ${config.env}`);
-  logger.info(`🔗 API: http://localhost:${config.port}/api`);
-});
+// Initialize services and start server
+const startServer = async (): Promise<void> => {
+  try {
+    // Initialize MinIO
+    logger.info('🗄️  Initializing MinIO...');
+    await minioService.initialize();
 
-// Graceful shutdown
-const gracefulShutdown = async (): Promise<void> => {
-  logger.info('🛑 Shutting down gracefully...');
+    // Start HTTP server
+    const server = app.listen(config.port, () => {
+      logger.info(`🏴‍☠️ Captain Bitbeard Backend running on port ${config.port}`);
+      logger.info(`📊 Environment: ${config.env}`);
+      logger.info(`🔗 API: http://localhost:${config.port}/api`);
+    });
 
-  server.close(() => {
-    logger.info('✅ Server closed');
-    process.exit(0);
-  });
+    // Graceful shutdown
+    const gracefulShutdown = async (): Promise<void> => {
+      logger.info('🛑 Shutting down gracefully...');
 
-  // Force close after 10 seconds
-  setTimeout(() => {
-    logger.error('❌ Forced shutdown after timeout');
+      server.close(() => {
+        logger.info('✅ Server closed');
+        process.exit(0);
+      });
+
+      // Force close after 10 seconds
+      setTimeout(() => {
+        logger.error('❌ Forced shutdown after timeout');
+        process.exit(1);
+      }, 10000);
+    };
+
+    process.on('SIGTERM', gracefulShutdown);
+    process.on('SIGINT', gracefulShutdown);
+  } catch (error) {
+    logger.error('❌ Failed to start server', error);
     process.exit(1);
-  }, 10000);
+  }
 };
 
-process.on('SIGTERM', gracefulShutdown);
-process.on('SIGINT', gracefulShutdown);
+startServer();
 
 export default app;

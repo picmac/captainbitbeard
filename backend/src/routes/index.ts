@@ -1,4 +1,5 @@
 import { Router } from 'express';
+import gameRoutes from './game.routes';
 
 const router = Router();
 
@@ -11,12 +12,13 @@ router.get('/', (_req, res) => {
   });
 });
 
-// TODO: Add route modules
+// Mount routes
+router.use('/games', gameRoutes);
+
+// TODO: Add more route modules
 // import authRoutes from './auth.routes';
-// import gamesRoutes from './games.routes';
 // import userRoutes from './user.routes';
 // router.use('/auth', authRoutes);
-// router.use('/games', gamesRoutes);
 // router.use('/users', userRoutes);
 
 export default router;

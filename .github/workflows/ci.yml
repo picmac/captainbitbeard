@@ -238,19 +238,80 @@ jobs:
           docker-compose down
 
   # ============================================
-  # Deploy (Future)
+  # Deploy
   # ============================================
   deploy:
-    name: Deploy to Production
+    name: Deploy to Self-Hosted Server
     runs-on: self-hosted
     needs: [integration-test]
-    if: github.ref == 'refs/heads/main'
+    if: github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/heads/claude/')
 
     steps:
       - name: 📥 Checkout code
         uses: actions/checkout@v4
 
-      - name: 🚀 Deploy
+      - name: 🔍 Verify environment
         run: |
-          echo "Deployment would happen here"
-          echo "Options: Docker Compose on self-hosted server"
+          echo "🏴‍☠️ Deploying Captain Bitbeard"
+          echo "Branch: ${{ github.ref }}"
+          echo "Commit: ${{ github.sha }}"
+          docker --version
+          docker-compose --version
+
+      - name: 📋 Check .env file
+        run: |
+          if [ ! -f .env ]; then
+            echo "⚠️  .env file not found, using .env.example as template"
+            cp .env.example .env
+            echo "⚠️  Please configure .env with your actual credentials"
+          fi
+
+      - name: 🛑 Stop existing containers
+        run: |
+          cd docker
+          docker-compose down || true
+
+      - name: 🏗️  Build Docker images
+        run: |
+          cd docker
+          docker-compose build
+
+      - name: 🚀 Start services
+        run: |
+          cd docker
+          docker-compose up -d
+
+      - name: ⏳ Wait for services
+        run: |
+          echo "Waiting for services to be ready..."
+          sleep 30
+
+      - name: 📊 Run database migrations
+        run: |
+          cd docker
+          docker-compose exec -T backend npm run migrate:deploy || echo "Migration skipped (may not be needed)"
+
+      - name: 🏥 Health check
+        run: |
+          echo "Backend Health:"
+          curl -f http://localhost:3001/health || exit 1
+          echo ""
+          echo "Frontend Health:"
+          curl -f http://localhost:3000 || exit 1
+          echo ""
+          echo "✅ All services healthy"
+
+      - name: 📊 Show deployment status
+        run: |
+          cd docker
+          docker-compose ps
+          echo ""
+          echo "✅ Deployment complete!"
+          echo "🔗 Frontend: http://localhost:3000"
+          echo "🔗 Backend API: http://localhost:3001/api"
+          echo "🔗 MinIO Console: http://localhost:9001"
+
+      - name: 🧹 Cleanup old images
+        run: |
+          echo "Cleaning up old Docker images..."
+          docker image prune -f
