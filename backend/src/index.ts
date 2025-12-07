@@ -77,7 +77,7 @@ const startServer = async (): Promise<void> => {
     process.on('SIGTERM', gracefulShutdown);
     process.on('SIGINT', gracefulShutdown);
   } catch (error) {
-    logger.error('❌ Failed to start server', error);
+    logger.error({ err: error }, '❌ Failed to start server');
     process.exit(1);
   }
 };
