@@ -1,0 +1,198 @@
+version: '3.8'
+
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:15-alpine
+    container_name: captainbitbeard-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-captainbitbeard}
+      POSTGRES_USER: ${POSTGRES_USER:-bitbeard}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be set}
+      PGDATA: /var/lib/postgresql/data/pgdata
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    networks:
+      - captainbitbeard
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-bitbeard}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # MinIO Object Storage (S3-compatible)
+  minio:
+    image: minio/minio:latest
+    container_name: captainbitbeard-minio
+    restart: unless-stopped
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ACCESS_KEY:-captainbitbeard}
+      MINIO_ROOT_PASSWORD: ${MINIO_SECRET_KEY:?MINIO_SECRET_KEY must be set}
+    volumes:
+      - minio-data:/data
+    ports:
+      - "9000:9000"    # MinIO API
+      - "9001:9001"    # MinIO Console
+    networks:
+      - captainbitbeard
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 30s
+      timeout: 20s
+      retries: 3
+
+  # MinIO Client - Create bucket on startup
+  minio-init:
+    image: minio/mc:latest
+    container_name: captainbitbeard-minio-init
+    depends_on:
+      minio:
+        condition: service_healthy
+    entrypoint: >
+      /bin/sh -c "
+      mc alias set myminio http://minio:9000 ${MINIO_ACCESS_KEY:-captainbitbeard} ${MINIO_SECRET_KEY};
+      mc mb myminio/${MINIO_BUCKET:-captain-bitbeard} --ignore-existing;
+      mc anonymous set download myminio/${MINIO_BUCKET:-captain-bitbeard}/covers;
+      mc anonymous set download myminio/${MINIO_BUCKET:-captain-bitbeard}/screenshots;
+      echo 'MinIO bucket initialized successfully';
+      "
+    networks:
+      - captainbitbeard
+
+  # Backend API Server
+  backend:
+    build:
+      context: ../backend
+      dockerfile: Dockerfile
+      target: ${NODE_ENV:-development}
+    container_name: captainbitbeard-backend
+    restart: unless-stopped
+    environment:
+      NODE_ENV: ${NODE_ENV:-development}
+      PORT: 3001
+      DATABASE_URL: postgresql://${POSTGRES_USER:-bitbeard}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-captainbitbeard}
+      MINIO_ENDPOINT: minio
+      MINIO_PORT: 9000
+      MINIO_ACCESS_KEY: ${MINIO_ACCESS_KEY:-captainbitbeard}
+      MINIO_SECRET_KEY: ${MINIO_SECRET_KEY}
+      MINIO_BUCKET: ${MINIO_BUCKET:-captain-bitbeard}
+      MINIO_USE_SSL: ${MINIO_USE_SSL:-false}
+      JWT_SECRET: ${JWT_SECRET:?JWT_SECRET must be set}
+      JWT_EXPIRES_IN: ${JWT_EXPIRES_IN:-7d}
+      SESSION_SECRET: ${SESSION_SECRET:?SESSION_SECRET must be set}
+      BCRYPT_ROUNDS: ${BCRYPT_ROUNDS:-10}
+      SCREENSCRAPER_USER: ${SCREENSCRAPER_USER}
+      SCREENSCRAPER_PASSWORD: ${SCREENSCRAPER_PASSWORD}
+      SCREENSCRAPER_DEV_ID: ${SCREENSCRAPER_DEV_ID}
+      SCREENSCRAPER_DEV_PASSWORD: ${SCREENSCRAPER_DEV_PASSWORD}
+      SCREENSCRAPER_SOFT_NAME: ${SCREENSCRAPER_SOFT_NAME:-CaptainBitbeard}
+      PIXELLAB_API_KEY: ${PIXELLAB_API_KEY}
+      CORS_ORIGIN: ${CORS_ORIGIN:-http://localhost:3000}
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+    volumes:
+      - ../backend/src:/app/src:cached  # Hot reload in development
+      - backend-node-modules:/app/node_modules
+    ports:
+      - "3001:3001"
+    networks:
+      - captainbitbeard
+    depends_on:
+      postgres:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3001/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # Frontend React App
+  frontend:
+    build:
+      context: ../frontend
+      dockerfile: Dockerfile
+      target: ${NODE_ENV:-development}
+      args:
+        VITE_API_URL: ${BACKEND_URL:-http://localhost:3001}
+    container_name: captainbitbeard-frontend
+    restart: unless-stopped
+    environment:
+      VITE_API_URL: ${BACKEND_URL:-http://localhost:3001}
+      VITE_MINIO_URL: http://localhost:9000
+    volumes:
+      - ../frontend/src:/app/src:cached  # Hot reload in development
+      - ../frontend/public:/app/public:cached
+      - frontend-node-modules:/app/node_modules
+    ports:
+      - "3000:3000"
+    networks:
+      - captainbitbeard
+    depends_on:
+      - backend
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # Prometheus (Phase 2 - Monitoring)
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: captainbitbeard-prometheus
+    restart: unless-stopped
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus-data:/prometheus
+    ports:
+      - "${PROMETHEUS_PORT:-9090}:9090"
+    networks:
+      - captainbitbeard
+    profiles:
+      - monitoring
+
+  # Grafana (Phase 2 - Monitoring)
+  grafana:
+    image: grafana/grafana:latest
+    container_name: captainbitbeard-grafana
+    restart: unless-stopped
+    environment:
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:-admin}
+      GF_SERVER_ROOT_URL: http://localhost:${GRAFANA_PORT:-3002}
+    volumes:
+      - grafana-data:/var/lib/grafana
+    ports:
+      - "${GRAFANA_PORT:-3002}:3000"
+    networks:
+      - captainbitbeard
+    depends_on:
+      - prometheus
+    profiles:
+      - monitoring
+
+networks:
+  captainbitbeard:
+    driver: bridge
+
+volumes:
+  postgres-data:
+    driver: local
+  minio-data:
+    driver: local
+  prometheus-data:
+    driver: local
+  grafana-data:
+    driver: local
+  backend-node-modules:
+    driver: local
+  frontend-node-modules:
+    driver: local

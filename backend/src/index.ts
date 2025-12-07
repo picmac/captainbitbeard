@@ -1,0 +1,72 @@
+import express, { Application } from 'express';
+import cors from 'cors';
+import helmet from 'helmet';
+import compression from 'compression';
+import { config } from './config';
+import { logger } from './utils/logger';
+import { errorHandler } from './middleware/error-handler';
+import { requestLogger } from './middleware/request-logger';
+import routes from './routes';
+
+const app: Application = express();
+
+// Security middleware
+app.use(helmet());
+app.use(cors({
+  origin: config.cors.origin,
+  credentials: true,
+}));
+
+// Body parsing middleware
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+
+// Compression
+app.use(compression());
+
+// Request logging
+app.use(requestLogger);
+
+// Health check endpoint
+app.get('/health', (_req, res) => {
+  res.status(200).json({
+    status: 'ok',
+    timestamp: new Date().toISOString(),
+    uptime: process.uptime(),
+    environment: config.env,
+  });
+});
+
+// API routes
+app.use('/api', routes);
+
+// Error handling
+app.use(errorHandler);
+
+// Start server
+const server = app.listen(config.port, () => {
+  logger.info(`🏴‍☠️ Captain Bitbeard Backend running on port ${config.port}`);
+  logger.info(`📊 Environment: ${config.env}`);
+  logger.info(`🔗 API: http://localhost:${config.port}/api`);
+});
+
+// Graceful shutdown
+const gracefulShutdown = async (): Promise<void> => {
+  logger.info('🛑 Shutting down gracefully...');
+
+  server.close(() => {
+    logger.info('✅ Server closed');
+    process.exit(0);
+  });
+
+  // Force close after 10 seconds
+  setTimeout(() => {
+    logger.error('❌ Forced shutdown after timeout');
+    process.exit(1);
+  }, 10000);
+};
+
+process.on('SIGTERM', gracefulShutdown);
+process.on('SIGINT', gracefulShutdown);
+
+export default app;

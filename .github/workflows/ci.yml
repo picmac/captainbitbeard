@@ -1,0 +1,256 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: [main, develop, 'claude/**']
+  pull_request:
+    branches: [main, develop]
+
+env:
+  NODE_VERSION: '20'
+  DOCKER_BUILDKIT: 1
+  COMPOSE_DOCKER_CLI_BUILD: 1
+
+jobs:
+  # ============================================
+  # Backend Tests
+  # ============================================
+  backend-test:
+    name: Backend - Test & Lint
+    runs-on: self-hosted
+    defaults:
+      run:
+        working-directory: ./backend
+
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 🔧 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: backend/package-lock.json
+
+      - name: 📦 Install dependencies
+        run: npm ci
+
+      - name: 🔍 TypeScript type check
+        run: npm run type-check
+
+      - name: 🎨 Lint code
+        run: npm run lint
+
+      - name: 🧪 Run tests
+        run: npm test
+
+      - name: 📊 Upload coverage
+        uses: codecov/codecov-action@v4
+        with:
+          files: ./backend/coverage/coverage-final.json
+          flags: backend
+
+  # ============================================
+  # Frontend Tests
+  # ============================================
+  frontend-test:
+    name: Frontend - Test & Lint
+    runs-on: self-hosted
+    defaults:
+      run:
+        working-directory: ./frontend
+
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 🔧 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: 📦 Install dependencies
+        run: npm ci
+
+      - name: 🔍 TypeScript type check
+        run: npm run type-check
+
+      - name: 🎨 Lint code
+        run: npm run lint
+
+      - name: 🧪 Run tests
+        run: npm run test
+
+      - name: 🏗️ Build
+        run: npm run build
+        env:
+          VITE_API_URL: http://localhost:3001
+
+  # ============================================
+  # Security Scanning
+  # ============================================
+  security-scan:
+    name: Security - Dependency & Container Scan
+    runs-on: self-hosted
+    needs: [backend-test, frontend-test]
+
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 🔍 Run Trivy vulnerability scanner
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: 'fs'
+          scan-ref: '.'
+          format: 'sarif'
+          output: 'trivy-results.sarif'
+
+      - name: 📤 Upload Trivy results to GitHub Security
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: 'trivy-results.sarif'
+
+      - name: 🔒 Backend - npm audit
+        working-directory: ./backend
+        run: npm audit --audit-level=moderate
+        continue-on-error: true
+
+      - name: 🔒 Frontend - npm audit
+        working-directory: ./frontend
+        run: npm audit --audit-level=moderate
+        continue-on-error: true
+
+  # ============================================
+  # OWASP Dependency Check
+  # ============================================
+  owasp-check:
+    name: Security - OWASP Dependency Check
+    runs-on: self-hosted
+    needs: [backend-test, frontend-test]
+
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 🔍 OWASP Dependency-Check
+        uses: dependency-check/Dependency-Check_Action@main
+        with:
+          project: 'captain-bitbeard'
+          path: '.'
+          format: 'ALL'
+
+      - name: 📤 Upload results
+        uses: actions/upload-artifact@v4
+        with:
+          name: dependency-check-report
+          path: ${{ github.workspace }}/reports
+
+  # ============================================
+  # Docker Build (Multi-Arch)
+  # ============================================
+  docker-build:
+    name: Docker - Multi-Arch Build
+    runs-on: self-hosted
+    needs: [backend-test, frontend-test, security-scan]
+    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop'
+
+    strategy:
+      matrix:
+        service: [backend, frontend]
+        platform: [linux/amd64, linux/arm64]
+
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 🔧 Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: 🔧 Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: 🏷️ Extract metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ghcr.io/${{ github.repository }}/${{ matrix.service }}
+          tags: |
+            type=ref,event=branch
+            type=ref,event=pr
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=sha
+
+      - name: 🔐 Login to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: 🏗️ Build and push
+        uses: docker/build-push-action@v5
+        with:
+          context: ./${{ matrix.service }}
+          platforms: ${{ matrix.platform }}
+          push: ${{ github.event_name != 'pull_request' }}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  # ============================================
+  # Integration Tests (Docker Compose)
+  # ============================================
+  integration-test:
+    name: Integration Tests
+    runs-on: self-hosted
+    needs: [docker-build]
+    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop'
+
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 🐳 Start services
+        run: |
+          cd docker
+          docker-compose up -d
+          sleep 30
+
+      - name: 🏥 Health check
+        run: |
+          curl --fail http://localhost:3001/health || exit 1
+          curl --fail http://localhost:3000 || exit 1
+
+      - name: 🧪 Run integration tests
+        run: |
+          # TODO: Add integration test suite
+          echo "Integration tests would run here"
+
+      - name: 🛑 Stop services
+        run: |
+          cd docker
+          docker-compose down
+
+  # ============================================
+  # Deploy (Future)
+  # ============================================
+  deploy:
+    name: Deploy to Production
+    runs-on: self-hosted
+    needs: [integration-test]
+    if: github.ref == 'refs/heads/main'
+
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 🚀 Deploy
+        run: |
+          echo "Deployment would happen here"
+          echo "Options: Docker Compose on self-hosted server"
