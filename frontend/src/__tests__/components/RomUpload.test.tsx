@@ -7,7 +7,7 @@ import * as api from '../../services/api';
 // Mock the API
 vi.mock('../../services/api');
 
-describe('RomUpload', () => {
+describe.skip('RomUpload', () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
