@@ -251,7 +251,7 @@ export class MinioService {
     try {
       await this.client.statObject(this.bucket, objectName);
       return true;
-    } catch (error) {
+    } catch {
       return false;
     }
   }

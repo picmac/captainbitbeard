@@ -1,4 +1,4 @@
-import { PrismaClient, Game } from '@prisma/client';
+import { PrismaClient, Game, Prisma } from '@prisma/client';
 import { minioService } from './minio.service';
 import { logger } from '../utils/logger';
 import crypto from 'crypto';
@@ -91,7 +91,7 @@ export class GameService {
     limit?: number;
     offset?: number;
   }): Promise<{ games: Game[]; total: number }> {
-    const where: any = {};
+    const where: Prisma.GameWhereInput = {};
 
     if (filters?.system) {
       where.system = filters.system;

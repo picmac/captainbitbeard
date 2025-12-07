@@ -2,6 +2,26 @@ import { Request, Response, NextFunction } from 'express';
 import { gameService } from '../services/game.service';
 import { AppError } from '../middleware/error-handler';
 
+interface UploadRomBody {
+  title: string;
+  system: string;
+  description?: string;
+  developer?: string;
+  publisher?: string;
+  genre?: string;
+  players?: string;
+}
+
+interface UpdateGameBody {
+  title?: string;
+  description?: string;
+  developer?: string;
+  publisher?: string;
+  releaseYear?: number;
+  genre?: string;
+  players?: number;
+}
+
 export class GameController {
   /**
    * Upload ROM and create game
@@ -14,7 +34,7 @@ export class GameController {
       }
 
       const { title, system, description, developer, publisher, genre, players } =
-        req.body;
+        req.body as UploadRomBody;
 
       if (!title || !system) {
         throw new AppError('Title and system are required', 400);
@@ -29,7 +49,7 @@ export class GameController {
         developer,
         publisher,
         genre,
-        players: players ? parseInt(players) : undefined,
+        players: players ? parseInt(players, 10) : undefined,
       });
 
       res.status(201).json({
@@ -170,7 +190,7 @@ export class GameController {
   async updateGame(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const { id } = req.params;
-      const updates = req.body;
+      const updates = req.body as UpdateGameBody;
 
       const game = await gameService.updateGame(id, updates);
 

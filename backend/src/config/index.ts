@@ -106,7 +106,12 @@ const validateConfig = (): void => {
   const missing: string[] = [];
 
   for (const key of required) {
-    const value = key.split('.').reduce((obj, k) => obj[k as keyof typeof obj], config as any);
+    const value = key.split('.').reduce<unknown>((obj, k) => {
+      if (obj && typeof obj === 'object' && k in obj) {
+        return (obj as Record<string, unknown>)[k];
+      }
+      return undefined;
+    }, config);
     if (!value) {
       missing.push(key);
     }

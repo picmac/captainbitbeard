@@ -82,6 +82,6 @@ const startServer = async (): Promise<void> => {
   }
 };
 
-startServer();
+void startServer();
 
 export default app;
