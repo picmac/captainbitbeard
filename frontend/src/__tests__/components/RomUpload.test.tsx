@@ -131,7 +131,7 @@ describe('RomUpload', () => {
     let progressCallback: ((event: any) => void) | undefined;
 
     vi.mocked(api.gameApi.uploadRom).mockImplementation(
-      async (file, metadata, onProgress) => {
+      async (_file, _metadata, onProgress) => {
         progressCallback = onProgress;
         return new Promise(() => {}); // Never resolves
       }

@@ -80,7 +80,7 @@ describe('GameGrid', () => {
     renderWithRouter(<GameGrid />);
 
     await waitFor(() => {
-      const img = screen.getByAlt('Super Mario Bros') as HTMLImageElement;
+      const img = screen.getByAltText('Super Mario Bros') as HTMLImageElement;
       expect(img).toBeInTheDocument();
       expect(img.src).toContain('covers/1.jpg');
     });

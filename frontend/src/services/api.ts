@@ -15,7 +15,7 @@ export interface Game {
   title: string;
   system: string;
   romPath: string;
-  coverUrl?: string;
+  coverUrl?: string | null;
   description?: string;
   releaseDate?: string;
   developer?: string;
