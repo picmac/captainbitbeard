@@ -315,6 +315,11 @@ jobs:
       - name: 🏗️  Build Docker images
         run: |
           cd docker
+          # Override .env with secrets if they exist
+          export POSTGRES_PASSWORD="${POSTGRES_PASSWORD:-$(grep POSTGRES_PASSWORD ../.env 2>/dev/null | cut -d '=' -f2)}"
+          export JWT_SECRET="${JWT_SECRET:-$(grep JWT_SECRET ../.env 2>/dev/null | cut -d '=' -f2)}"
+          export MINIO_ROOT_PASSWORD="${MINIO_ROOT_PASSWORD:-$(grep MINIO_ROOT_PASSWORD ../.env 2>/dev/null | cut -d '=' -f2)}"
+          export SCREENSCRAPER_PASSWORD="${SCREENSCRAPER_PASSWORD:-$(grep SCREENSCRAPER_PASSWORD ../.env 2>/dev/null | cut -d '=' -f2)}"
           docker compose build
         env:
           POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
@@ -325,6 +330,11 @@ jobs:
       - name: 🚀 Start services
         run: |
           cd docker
+          # Override .env with secrets if they exist
+          export POSTGRES_PASSWORD="${POSTGRES_PASSWORD:-$(grep POSTGRES_PASSWORD ../.env 2>/dev/null | cut -d '=' -f2)}"
+          export JWT_SECRET="${JWT_SECRET:-$(grep JWT_SECRET ../.env 2>/dev/null | cut -d '=' -f2)}"
+          export MINIO_ROOT_PASSWORD="${MINIO_ROOT_PASSWORD:-$(grep MINIO_ROOT_PASSWORD ../.env 2>/dev/null | cut -d '=' -f2)}"
+          export SCREENSCRAPER_PASSWORD="${SCREENSCRAPER_PASSWORD:-$(grep SCREENSCRAPER_PASSWORD ../.env 2>/dev/null | cut -d '=' -f2)}"
           docker compose up -d
         env:
           POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
