@@ -258,7 +258,7 @@ jobs:
       - name: 🐳 Start services
         run: |
           cd docker
-          docker-compose up -d
+          docker compose up -d
           sleep 30
 
       - name: 🏥 Health check
@@ -274,7 +274,7 @@ jobs:
       - name: 🛑 Stop services
         run: |
           cd docker
-          docker-compose down
+          docker compose down
 
   # ============================================
   # Deploy
@@ -297,7 +297,7 @@ jobs:
           echo "Branch: ${{ github.ref }}"
           echo "Commit: ${{ github.sha }}"
           docker --version
-          docker-compose --version
+          docker compose version
 
       - name: 📋 Check .env file
         run: |
@@ -310,17 +310,17 @@ jobs:
       - name: 🛑 Stop existing containers
         run: |
           cd docker
-          docker-compose down || true
+          docker compose down || true
 
       - name: 🏗️  Build Docker images
         run: |
           cd docker
-          docker-compose build
+          docker compose build
 
       - name: 🚀 Start services
         run: |
           cd docker
-          docker-compose up -d
+          docker compose up -d
 
       - name: ⏳ Wait for services
         run: |
@@ -330,7 +330,7 @@ jobs:
       - name: 📊 Run database migrations
         run: |
           cd docker
-          docker-compose exec -T backend npm run migrate:deploy || echo "Migration skipped (may not be needed)"
+          docker compose exec -T backend npm run migrate:deploy || echo "Migration skipped (may not be needed)"
 
       - name: 🏥 Health check
         run: |
@@ -345,7 +345,7 @@ jobs:
       - name: 📊 Show deployment status
         run: |
           cd docker
-          docker-compose ps
+          docker compose ps
           echo ""
           echo "✅ Deployment complete!"
           echo "🔗 Frontend: http://localhost:3000"
