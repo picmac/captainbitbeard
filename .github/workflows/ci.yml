@@ -316,11 +316,21 @@ jobs:
         run: |
           cd docker
           docker compose build
+        env:
+          POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
+          JWT_SECRET: ${{ secrets.JWT_SECRET }}
+          MINIO_ROOT_PASSWORD: ${{ secrets.MINIO_ROOT_PASSWORD }}
+          SCREENSCRAPER_PASSWORD: ${{ secrets.SCREENSCRAPER_PASSWORD }}
 
       - name: 🚀 Start services
         run: |
           cd docker
           docker compose up -d
+        env:
+          POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
+          JWT_SECRET: ${{ secrets.JWT_SECRET }}
+          MINIO_ROOT_PASSWORD: ${{ secrets.MINIO_ROOT_PASSWORD }}
+          SCREENSCRAPER_PASSWORD: ${{ secrets.SCREENSCRAPER_PASSWORD }}
 
       - name: ⏳ Wait for services
         run: |
