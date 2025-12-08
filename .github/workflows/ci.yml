@@ -23,6 +23,13 @@ jobs:
         working-directory: ./backend
 
     steps:
+      - name: 🧹 Clean workspace
+        run: |
+          cd ${{ github.workspace }}
+          rm -rf reports/ || true
+          git clean -ffdx || true
+        working-directory: ${{ github.workspace }}
+
       - name: 📥 Checkout code
         uses: actions/checkout@v4
 
@@ -62,6 +69,13 @@ jobs:
         working-directory: ./frontend
 
     steps:
+      - name: 🧹 Clean workspace
+        run: |
+          cd ${{ github.workspace }}
+          rm -rf reports/ || true
+          git clean -ffdx || true
+        working-directory: ${{ github.workspace }}
+
       - name: 📥 Checkout code
         uses: actions/checkout@v4
 
@@ -101,6 +115,11 @@ jobs:
       contents: read
 
     steps:
+      - name: 🧹 Clean workspace
+        run: |
+          rm -rf reports/ || true
+          git clean -ffdx || true
+
       - name: 📥 Checkout code
         uses: actions/checkout@v4
 
@@ -136,6 +155,11 @@ jobs:
     needs: [backend-test, frontend-test]
 
     steps:
+      - name: 🧹 Clean workspace
+        run: |
+          rm -rf reports/ || true
+          git clean -ffdx || true
+
       - name: 📥 Checkout code
         uses: actions/checkout@v4
 
