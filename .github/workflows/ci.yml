@@ -368,9 +368,17 @@ jobs:
           docker compose ps
           echo ""
           echo "✅ Deployment complete!"
-          echo "🔗 Frontend: http://localhost:3000"
-          echo "🔗 Backend API: http://localhost:3001/api"
-          echo "🔗 MinIO Console: http://localhost:9001"
+
+          # Get server host from .env or use hostname
+          SERVER_HOST=$(grep SERVER_HOST ../.env 2>/dev/null | cut -d '=' -f2 || hostname -I | awk '{print $1}')
+
+          echo ""
+          echo "🌐 Access URLs:"
+          echo "🔗 Frontend: http://${SERVER_HOST}:3000"
+          echo "🔗 Backend API: http://${SERVER_HOST}:3001/api"
+          echo "🔗 MinIO Console: http://${SERVER_HOST}:9001"
+          echo ""
+          echo "📱 Access from mobile/other devices using the IP address above"
 
       - name: 🧹 Cleanup old images
         run: |
