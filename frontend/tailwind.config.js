@@ -6,6 +6,7 @@ export default {
       colors: {
         'ocean-blue': '#0F4C81',
         'ocean-dark': '#191970',
+        'night-sky': '#191970',
         'sand-beige': '#E8D5B7',
         'pirate-gold': '#FFD700',
         'wood-brown': '#8B4513',
