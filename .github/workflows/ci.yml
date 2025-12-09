@@ -23,8 +23,17 @@ jobs:
         working-directory: ./backend
 
     steps:
+      - name: 🧹 Clean workspace
+        run: |
+          cd ${{ github.workspace }}
+          sudo rm -rf reports/ || true
+          sudo git clean -ffdx || true
+        working-directory: ${{ github.workspace }}
+
       - name: 📥 Checkout code
         uses: actions/checkout@v4
+        with:
+          clean: false
 
       - name: 🔧 Setup Node.js
         uses: actions/setup-node@v4
@@ -62,8 +71,17 @@ jobs:
         working-directory: ./frontend
 
     steps:
+      - name: 🧹 Clean workspace
+        run: |
+          cd ${{ github.workspace }}
+          sudo rm -rf reports/ || true
+          sudo git clean -ffdx || true
+        working-directory: ${{ github.workspace }}
+
       - name: 📥 Checkout code
         uses: actions/checkout@v4
+        with:
+          clean: false
 
       - name: 🔧 Setup Node.js
         uses: actions/setup-node@v4
@@ -101,8 +119,15 @@ jobs:
       contents: read
 
     steps:
+      - name: 🧹 Clean workspace
+        run: |
+          sudo rm -rf reports/ || true
+          sudo git clean -ffdx || true
+
       - name: 📥 Checkout code
         uses: actions/checkout@v4
+        with:
+          clean: false
 
       - name: 🔍 Run Trivy vulnerability scanner
         uses: aquasecurity/trivy-action@master
@@ -136,8 +161,15 @@ jobs:
     needs: [backend-test, frontend-test]
 
     steps:
+      - name: 🧹 Clean workspace
+        run: |
+          sudo rm -rf reports/ || true
+          sudo git clean -ffdx || true
+
       - name: 📥 Checkout code
         uses: actions/checkout@v4
+        with:
+          clean: false
 
       - name: 🔍 OWASP Dependency-Check
         uses: dependency-check/Dependency-Check_Action@main
@@ -169,6 +201,8 @@ jobs:
     steps:
       - name: 📥 Checkout code
         uses: actions/checkout@v4
+        with:
+          clean: false
 
       - name: 🔧 Set up QEMU
         uses: docker/setup-qemu-action@v3
@@ -218,11 +252,13 @@ jobs:
     steps:
       - name: 📥 Checkout code
         uses: actions/checkout@v4
+        with:
+          clean: false
 
       - name: 🐳 Start services
         run: |
           cd docker
-          docker-compose up -d
+          docker compose up -d
           sleep 30
 
       - name: 🏥 Health check
@@ -238,7 +274,7 @@ jobs:
       - name: 🛑 Stop services
         run: |
           cd docker
-          docker-compose down
+          docker compose down
 
   # ============================================
   # Deploy
@@ -246,12 +282,14 @@ jobs:
   deploy:
     name: Deploy to Self-Hosted Server
     runs-on: self-hosted
-    needs: [integration-test]
+    needs: [backend-test, frontend-test, security-scan]
     if: github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/heads/claude/')
 
     steps:
       - name: 📥 Checkout code
         uses: actions/checkout@v4
+        with:
+          clean: false
 
       - name: 🔍 Verify environment
         run: |
@@ -259,7 +297,7 @@ jobs:
           echo "Branch: ${{ github.ref }}"
           echo "Commit: ${{ github.sha }}"
           docker --version
-          docker-compose --version
+          docker compose version
 
       - name: 📋 Check .env file
         run: |
@@ -272,17 +310,39 @@ jobs:
       - name: 🛑 Stop existing containers
         run: |
           cd docker
-          docker-compose down || true
+          docker compose down || true
 
       - name: 🏗️  Build Docker images
         run: |
           cd docker
-          docker-compose build
+          docker compose build
+        env:
+          POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
+          JWT_SECRET: ${{ secrets.JWT_SECRET }}
+          SESSION_SECRET: ${{ secrets.SESSION_SECRET }}
+          MINIO_SECRET_KEY: ${{ secrets.MINIO_SECRET_KEY }}
+          SCREENSCRAPER_USER: ${{ secrets.SCREENSCRAPER_USER }}
+          SCREENSCRAPER_PASSWORD: ${{ secrets.SCREENSCRAPER_PASSWORD }}
+          SCREENSCRAPER_DEV_ID: ${{ secrets.SCREENSCRAPER_DEV_ID }}
+          SCREENSCRAPER_DEV_PASSWORD: ${{ secrets.SCREENSCRAPER_DEV_PASSWORD }}
+          GRAFANA_ADMIN_PASSWORD: ${{ secrets.GRAFANA_ADMIN_PASSWORD }}
+          PIXELLAB_API_KEY: ${{ secrets.PIXELLAB_API_KEY }}
 
       - name: 🚀 Start services
         run: |
           cd docker
-          docker-compose up -d
+          docker compose up -d
+        env:
+          POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
+          JWT_SECRET: ${{ secrets.JWT_SECRET }}
+          SESSION_SECRET: ${{ secrets.SESSION_SECRET }}
+          MINIO_SECRET_KEY: ${{ secrets.MINIO_SECRET_KEY }}
+          SCREENSCRAPER_USER: ${{ secrets.SCREENSCRAPER_USER }}
+          SCREENSCRAPER_PASSWORD: ${{ secrets.SCREENSCRAPER_PASSWORD }}
+          SCREENSCRAPER_DEV_ID: ${{ secrets.SCREENSCRAPER_DEV_ID }}
+          SCREENSCRAPER_DEV_PASSWORD: ${{ secrets.SCREENSCRAPER_DEV_PASSWORD }}
+          GRAFANA_ADMIN_PASSWORD: ${{ secrets.GRAFANA_ADMIN_PASSWORD }}
+          PIXELLAB_API_KEY: ${{ secrets.PIXELLAB_API_KEY }}
 
       - name: ⏳ Wait for services
         run: |
@@ -292,7 +352,7 @@ jobs:
       - name: 📊 Run database migrations
         run: |
           cd docker
-          docker-compose exec -T backend npm run migrate:deploy || echo "Migration skipped (may not be needed)"
+          docker compose exec -T backend npm run migrate:deploy || echo "Migration skipped (may not be needed)"
 
       - name: 🏥 Health check
         run: |
@@ -307,12 +367,20 @@ jobs:
       - name: 📊 Show deployment status
         run: |
           cd docker
-          docker-compose ps
+          docker compose ps
           echo ""
           echo "✅ Deployment complete!"
-          echo "🔗 Frontend: http://localhost:3000"
-          echo "🔗 Backend API: http://localhost:3001/api"
-          echo "🔗 MinIO Console: http://localhost:9001"
+
+          # Get server host from .env or use hostname
+          SERVER_HOST=$(grep SERVER_HOST ../.env 2>/dev/null | cut -d '=' -f2 || hostname -I | awk '{print $1}')
+
+          echo ""
+          echo "🌐 Access URLs:"
+          echo "🔗 Frontend: http://${SERVER_HOST}:3000"
+          echo "🔗 Backend API: http://${SERVER_HOST}:3001/api"
+          echo "🔗 MinIO Console: http://${SERVER_HOST}:9001"
+          echo ""
+          echo "📱 Access from mobile/other devices using the IP address above"
 
       - name: 🧹 Cleanup old images
         run: |
