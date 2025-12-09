@@ -48,6 +48,7 @@ postgres-data/
 
 # Emulator files (downloaded during setup)
 frontend/public/emulatorjs/cores/
+frontend/public/emulatorjs/data/cores/
 frontend/public/emulatorjs/bios/
 
 # User uploads (development)
@@ -56,3 +57,7 @@ uploads/
 # Logs
 logs/
 *.log
+
+# Security scanning
+trivy-results.sarif
+.cache/

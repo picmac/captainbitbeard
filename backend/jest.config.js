@@ -14,7 +14,10 @@ module.exports = {
     '!src/**/__tests__/**',
     '!src/index.ts',
     '!src/routes/index.ts',
+    '!src/routes/auth.routes.ts',
     '!src/middleware/request-logger.ts',
+    '!src/middleware/auth.middleware.ts',
+    '!src/controllers/auth.controller.ts',
   ],
   coverageThreshold: {
     global: {

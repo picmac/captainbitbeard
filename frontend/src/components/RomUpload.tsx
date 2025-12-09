@@ -141,10 +141,11 @@ export function RomUpload({ onUploadComplete }: RomUploadProps) {
             <input
               ref={fileInputRef}
               type="file"
+              id="rom-file"
+              name="rom-file"
               onChange={handleFileSelect}
               accept=".nes,.snes,.sfc,.gb,.gbc,.gba,.n64,.z64,.nds,.smd,.gen,.iso,.bin,.cue,.zip,.7z,.rar"
               className="hidden"
-              id="rom-file"
             />
 
             {selectedFile ? (
@@ -175,11 +176,13 @@ export function RomUpload({ onUploadComplete }: RomUploadProps) {
 
           {/* Title */}
           <div>
-            <label className="text-pixel mb-2 block text-xs text-skull-white">
+            <label htmlFor="game-title" className="text-pixel mb-2 block text-xs text-skull-white">
               GAME TITLE *
             </label>
             <input
               type="text"
+              id="game-title"
+              name="title"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               required
@@ -190,10 +193,12 @@ export function RomUpload({ onUploadComplete }: RomUploadProps) {
 
           {/* System */}
           <div>
-            <label className="text-pixel mb-2 block text-xs text-skull-white">
+            <label htmlFor="game-system" className="text-pixel mb-2 block text-xs text-skull-white">
               SYSTEM *
             </label>
             <select
+              id="game-system"
+              name="system"
               value={system}
               onChange={(e) => setSystem(e.target.value)}
               required
@@ -210,10 +215,12 @@ export function RomUpload({ onUploadComplete }: RomUploadProps) {
 
           {/* Description */}
           <div>
-            <label className="text-pixel mb-2 block text-xs text-skull-white">
+            <label htmlFor="game-description" className="text-pixel mb-2 block text-xs text-skull-white">
               DESCRIPTION
             </label>
             <textarea
+              id="game-description"
+              name="description"
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               rows={3}

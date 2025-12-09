@@ -3,15 +3,16 @@
 # Multi-arch: linux/amd64, linux/arm64
 
 # Stage 1: Base
-FROM node:20-alpine AS base
+FROM node:20-alpine3.18 AS base
 WORKDIR /app
 
-# Install dependencies for building native modules
+# Install dependencies for building native modules and Prisma
 RUN apk add --no-cache \
     python3 \
     make \
     g++ \
-    libc6-compat
+    libc6-compat \
+    openssl1.1-compat
 
 # Copy package files
 COPY package*.json ./
@@ -25,6 +26,9 @@ RUN npm ci
 
 # Copy source code
 COPY . .
+
+# Generate Prisma Client
+RUN npx prisma generate
 
 # Expose port
 EXPOSE 3001
@@ -41,6 +45,9 @@ RUN npm ci
 # Copy source code
 COPY . .
 
+# Generate Prisma Client
+RUN npx prisma generate
+
 # Build TypeScript
 RUN npm run build
 
@@ -48,11 +55,11 @@ RUN npm run build
 RUN npm prune --production
 
 # Stage 4: Production
-FROM node:20-alpine AS production
+FROM node:20-alpine3.18 AS production
 WORKDIR /app
 
-# Install dumb-init for proper signal handling
-RUN apk add --no-cache dumb-init
+# Install dumb-init for proper signal handling and OpenSSL for Prisma
+RUN apk add --no-cache dumb-init openssl1.1-compat
 
 # Create non-root user
 RUN addgroup -g 1001 -S nodejs && \

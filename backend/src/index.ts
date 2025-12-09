@@ -9,6 +9,12 @@ import { requestLogger } from './middleware/request-logger';
 import { minioService } from './services/minio.service';
 import routes from './routes';
 
+// Fix BigInt serialization
+// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+(BigInt.prototype as any).toJSON = function (this: bigint): string {
+  return this.toString();
+};
+
 const app: Application = express();
 
 // Security middleware

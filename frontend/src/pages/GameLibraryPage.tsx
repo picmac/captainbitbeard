@@ -19,6 +19,8 @@ export function GameLibraryPage() {
           {/* Search */}
           <input
             type="text"
+            id="game-search"
+            name="search"
             placeholder="Search games..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
@@ -27,6 +29,8 @@ export function GameLibraryPage() {
 
           {/* System Filter */}
           <select
+            id="system-filter"
+            name="system-filter"
             value={selectedSystem}
             onChange={(e) => setSelectedSystem(e.target.value)}
             className="w-full border-4 border-wood-brown bg-sand-beige p-3 text-sm text-ocean-dark"
