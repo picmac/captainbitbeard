@@ -237,6 +237,117 @@ export class GameController {
       next(error);
     }
   }
+
+  /**
+   * Bulk upload ROMs
+   * POST /api/games/bulk-upload
+   */
+  async bulkUploadRoms(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const files = req.files as Express.Multer.File[];
+
+      if (!files || files.length === 0) {
+        throw new AppError('No ROM files provided', 400);
+      }
+
+      const { system, autoScrape } = req.body;
+
+      if (!system) {
+        throw new AppError('System is required', 400);
+      }
+
+      const results = {
+        total: files.length,
+        successful: [] as string[],
+        failed: [] as { filename: string; error: string }[],
+      };
+
+      // Process each file
+      for (const file of files) {
+        try {
+          // Extract title from filename (remove extension)
+          const title = file.originalname.replace(/\.[^/.]+$/, '');
+
+          const game = await gameService.createGame({
+            title,
+            system: system.toLowerCase(),
+            romBuffer: file.buffer,
+            romFileName: file.originalname,
+          });
+
+          results.successful.push(game.id);
+
+          // Auto-scrape metadata if requested
+          if (autoScrape === 'true' || autoScrape === true) {
+            try {
+              await gameService.fetchMetadata(game.id);
+            } catch (scrapeError) {
+              // Log but don't fail the upload
+              console.error(`Failed to scrape metadata for ${title}:`, scrapeError);
+            }
+          }
+        } catch (error) {
+          const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+          results.failed.push({
+            filename: file.originalname,
+            error: errorMessage,
+          });
+        }
+      }
+
+      res.status(201).json({
+        status: 'success',
+        data: { results },
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
+   * Fetch metadata for a single game
+   * POST /api/games/:id/scrape
+   */
+  async scrapeMetadata(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const { id } = req.params;
+      const game = await gameService.fetchMetadata(id);
+
+      if (!game) {
+        throw new AppError('Game not found', 404);
+      }
+
+      res.json({
+        status: 'success',
+        data: { game },
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
+   * Bulk fetch metadata for multiple games
+   * POST /api/games/bulk-scrape
+   */
+  async bulkScrapeMetadata(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const { gameIds } = req.body;
+
+      if (!gameIds || !Array.isArray(gameIds) || gameIds.length === 0) {
+        throw new AppError('Game IDs array is required', 400);
+      }
+
+      const results = await gameService.bulkFetchMetadata(gameIds);
+
+      res.json({
+        status: 'success',
+        data: { results },
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
 }
 
 export const gameController = new GameController();
