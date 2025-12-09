@@ -10,7 +10,8 @@ import { minioService } from './services/minio.service';
 import routes from './routes';
 
 // Fix BigInt serialization
-(BigInt.prototype as any).toJSON = function () {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+(BigInt.prototype as any).toJSON = function (this: bigint): string {
   return this.toString();
 };
 

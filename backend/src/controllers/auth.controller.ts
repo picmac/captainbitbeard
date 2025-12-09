@@ -16,12 +16,23 @@ export interface AuthRequest extends Request {
   };
 }
 
+interface LoginRequest {
+  username: string;
+  password: string;
+}
+
+interface RegisterRequest {
+  username: string;
+  email: string;
+  password: string;
+}
+
 /**
  * Login user and return JWT token
  */
 export const login = async (req: Request, res: Response): Promise<void> => {
   try {
-    const { username, password } = req.body;
+    const { username, password } = req.body as LoginRequest;
 
     // Validate input
     if (!username || !password) {
@@ -91,7 +102,7 @@ export const login = async (req: Request, res: Response): Promise<void> => {
  */
 export const register = async (req: Request, res: Response): Promise<void> => {
   try {
-    const { username, email, password } = req.body;
+    const { username, email, password } = req.body as RegisterRequest;
 
     // Validate input
     if (!username || !email || !password) {
