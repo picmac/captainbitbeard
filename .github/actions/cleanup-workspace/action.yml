@@ -1,0 +1,12 @@
+name: 'Cleanup Workspace'
+description: 'Clean workspace from previous runs'
+
+runs:
+  using: 'composite'
+  steps:
+    - name: 🧹 Clean workspace
+      shell: bash
+      run: |
+        cd ${{ github.workspace }}
+        sudo rm -rf reports/ || true
+        sudo git clean -ffdx || true
