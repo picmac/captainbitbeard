@@ -209,4 +209,63 @@ export const gameApi = {
   deleteGame: async (id: string): Promise<void> => {
     await api.delete(`/games/${id}`);
   },
+
+  // Bulk upload ROMs
+  bulkUploadRoms: async (
+    romFiles: File[],
+    system: string,
+    autoScrape: boolean = true,
+    onUploadProgress?: (progressEvent: any) => void
+  ): Promise<{
+    status: string;
+    data: {
+      results: {
+        total: number;
+        successful: string[];
+        failed: Array<{ filename: string; error: string }>;
+      };
+    };
+  }> => {
+    const formData = new FormData();
+
+    // Append all ROM files
+    romFiles.forEach((file) => {
+      formData.append('roms', file);
+    });
+
+    formData.append('system', system);
+    formData.append('autoScrape', autoScrape.toString());
+
+    const response = await api.post('/games/bulk-upload', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+      onUploadProgress,
+    });
+
+    return response.data;
+  },
+
+  // Scrape metadata for a single game
+  scrapeMetadata: async (gameId: string): Promise<GameResponse> => {
+    const response = await api.post(`/games/${gameId}/scrape`);
+    return response.data;
+  },
+
+  // Bulk scrape metadata
+  bulkScrapeMetadata: async (
+    gameIds: string[]
+  ): Promise<{
+    status: string;
+    data: {
+      results: {
+        success: number;
+        failed: number;
+        results: Array<{ gameId: string; success: boolean; error?: string }>;
+      };
+    };
+  }> => {
+    const response = await api.post('/games/bulk-scrape', { gameIds });
+    return response.data;
+  },
 };

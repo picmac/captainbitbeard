@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { gameApi, type Game } from '../services/api';
+import { GameCard } from './GameCard';
 
 interface GameGridProps {
   system?: string;
@@ -11,11 +11,11 @@ export function GameGrid({ system, searchQuery }: GameGridProps) {
   const [games, setGames] = useState<Game[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const navigate = useNavigate();
+  const [refreshKey, setRefreshKey] = useState(0);
 
   useEffect(() => {
     loadGames();
-  }, [system, searchQuery]);
+  }, [system, searchQuery, refreshKey]);
 
   const loadGames = async () => {
     setLoading(true);
@@ -40,8 +40,8 @@ export function GameGrid({ system, searchQuery }: GameGridProps) {
     }
   };
 
-  const handlePlayGame = (gameId: string) => {
-    navigate(`/play/${gameId}`);
+  const handleRefresh = () => {
+    setRefreshKey((prev) => prev + 1);
   };
 
   if (loading) {
@@ -49,9 +49,7 @@ export function GameGrid({ system, searchQuery }: GameGridProps) {
       <div className="flex min-h-[400px] items-center justify-center">
         <div className="text-center">
           <div className="loading-spinner mx-auto mb-4"></div>
-          <p className="text-pixel text-sm text-skull-white">
-            Loading games...
-          </p>
+          <p className="text-pixel text-sm text-skull-white">Loading games...</p>
         </div>
       </div>
     );
@@ -68,9 +66,7 @@ export function GameGrid({ system, searchQuery }: GameGridProps) {
   if (games.length === 0) {
     return (
       <div className="border-4 border-wood-brown bg-sand-beige p-8 text-center">
-        <p className="text-pixel text-sm text-ocean-dark">
-          No games found
-        </p>
+        <p className="text-pixel text-sm text-ocean-dark">No games found</p>
         <p className="text-pixel mt-2 text-xs text-ocean-dark">
           Upload some ROMs to get started!
         </p>
@@ -79,51 +75,20 @@ export function GameGrid({ system, searchQuery }: GameGridProps) {
   }
 
   return (
-    <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6">
-      {games.map((game) => (
-        <div
-          key={game.id}
-          onClick={() => handlePlayGame(game.id)}
-          className="group cursor-pointer transition-transform hover:scale-105"
-        >
-          {/* Game Card */}
-          <div className="border-4 border-wood-brown bg-sand-beige">
-            {/* Cover Image */}
-            <div className="pixel-art aspect-square overflow-hidden bg-ocean-dark">
-              {game.coverUrl ? (
-                <img
-                  src={game.coverUrl}
-                  alt={game.title}
-                  className="pixel-art h-full w-full object-cover"
-                />
-              ) : (
-                <div className="flex h-full items-center justify-center">
-                  <span className="text-pixel text-2xl">🎮</span>
-                </div>
-              )}
-            </div>
+    <div>
+      {/* Stats Bar */}
+      <div className="mb-4 text-center">
+        <p className="text-pixel text-xs text-skull-white">
+          📦 {games.length} game{games.length !== 1 ? 's' : ''} found
+        </p>
+      </div>
 
-            {/* Game Info */}
-            <div className="p-2">
-              <h3 className="text-pixel truncate text-xs text-ocean-dark group-hover:text-pirate-gold">
-                {game.title}
-              </h3>
-              <p className="text-pixel mt-1 text-[8px] uppercase text-wood-brown">
-                {game.system}
-              </p>
-            </div>
-          </div>
-
-          {/* Play Button Overlay (visible on hover on desktop) */}
-          <div className="hidden group-hover:block">
-            <div className="relative -mt-16 flex justify-center">
-              <button className="btn-retro z-10 text-xs">
-                ▶ PLAY
-              </button>
-            </div>
-          </div>
-        </div>
-      ))}
+      {/* Game Grid */}
+      <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6">
+        {games.map((game) => (
+          <GameCard key={game.id} game={game} onMetadataFetched={handleRefresh} />
+        ))}
+      </div>
     </div>
   );
 }

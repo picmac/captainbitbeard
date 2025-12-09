@@ -54,6 +54,13 @@ router.get('/system/:system', gameController.getGamesBySystem.bind(gameControlle
 
 // Admin routes (TODO: Add authentication middleware)
 router.post('/upload', upload.single('rom'), gameController.uploadRom.bind(gameController));
+router.post(
+  '/bulk-upload',
+  upload.array('roms', 50), // Allow up to 50 files at once
+  gameController.bulkUploadRoms.bind(gameController)
+);
+router.post('/:id/scrape', gameController.scrapeMetadata.bind(gameController));
+router.post('/bulk-scrape', gameController.bulkScrapeMetadata.bind(gameController));
 router.patch('/:id', gameController.updateGame.bind(gameController));
 router.delete('/:id', gameController.deleteGame.bind(gameController));
 

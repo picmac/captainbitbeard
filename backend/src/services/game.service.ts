@@ -1,5 +1,6 @@
 import { PrismaClient, Game, Prisma } from '@prisma/client';
 import { minioService } from './minio.service';
+import { screenScraperService } from './screenscraper.service';
 import { logger } from '../utils/logger';
 import crypto from 'crypto';
 
@@ -259,6 +260,133 @@ export class GameService {
       system: s.system,
       count: s._count.system,
     }));
+  }
+
+  /**
+   * Fetch metadata from ScreenScraper and update game
+   */
+  async fetchMetadata(gameId: string): Promise<Game | null> {
+    const game = await this.getGameById(gameId);
+    if (!game) {
+      throw new Error('Game not found');
+    }
+
+    try {
+      logger.info(`Fetching metadata for game: ${game.title}`);
+
+      // Extract ROM filename from path
+      const romFileName = game.romPath.split('/').pop() || game.title;
+
+      // Try to fetch by ROM name
+      let metadata = await screenScraperService.searchGameByRomName(romFileName, game.system);
+
+      // If not found, try by CRC/MD5 if available
+      if (!metadata && game.metadata?.md5Hash) {
+        metadata = await screenScraperService.searchGameByCrc(
+          game.metadata.md5Hash,
+          game.system
+        );
+      }
+
+      if (!metadata) {
+        logger.warn(`No metadata found for: ${game.title}`);
+        return game;
+      }
+
+      // Download cover image if available
+      let coverUrl = game.coverUrl;
+      if (metadata.coverUrl) {
+        const coverBuffer = await screenScraperService.downloadImage(metadata.coverUrl);
+        if (coverBuffer) {
+          coverUrl = await minioService.uploadCover(game.id, coverBuffer);
+          logger.info(`Cover uploaded for: ${game.title}`);
+        }
+      }
+
+      // Download screenshots if available
+      if (metadata.screenshotUrls && metadata.screenshotUrls.length > 0) {
+        for (let i = 0; i < Math.min(metadata.screenshotUrls.length, 4); i++) {
+          const screenshotBuffer = await screenScraperService.downloadImage(
+            metadata.screenshotUrls[i]
+          );
+          if (screenshotBuffer) {
+            const screenshotUrl = await minioService.uploadScreenshot(
+              game.id,
+              i,
+              screenshotBuffer
+            );
+
+            // Create screenshot record
+            await prisma.gameScreenshot.create({
+              data: {
+                gameId: game.id,
+                url: screenshotUrl,
+                order: i,
+              },
+            });
+
+            logger.info(`Screenshot ${i + 1} uploaded for: ${game.title}`);
+          }
+        }
+      }
+
+      // Update game with metadata
+      const updatedGame = await prisma.game.update({
+        where: { id: gameId },
+        data: {
+          title: metadata.title || game.title,
+          description: metadata.description,
+          coverUrl,
+          releaseDate: metadata.releaseDate ? new Date(metadata.releaseDate) : undefined,
+          developer: metadata.developer,
+          publisher: metadata.publisher,
+          genre: metadata.genre,
+          players: metadata.players,
+          rating: metadata.rating,
+        },
+        include: {
+          metadata: true,
+          screenshots: true,
+        },
+      });
+
+      logger.info(`Metadata updated for: ${game.title}`);
+      return updatedGame;
+    } catch (error) {
+      logger.error({ err: error }, `Failed to fetch metadata for game: ${gameId}`);
+      throw error;
+    }
+  }
+
+  /**
+   * Bulk fetch metadata for multiple games
+   */
+  async bulkFetchMetadata(gameIds: string[]): Promise<{
+    success: number;
+    failed: number;
+    results: Array<{ gameId: string; success: boolean; error?: string }>;
+  }> {
+    const results: Array<{ gameId: string; success: boolean; error?: string }> = [];
+    let success = 0;
+    let failed = 0;
+
+    for (const gameId of gameIds) {
+      try {
+        await this.fetchMetadata(gameId);
+        results.push({ gameId, success: true });
+        success++;
+
+        // Rate limiting: wait 1 second between requests
+        await new Promise((resolve) => setTimeout(resolve, 1000));
+      } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+        results.push({ gameId, success: false, error: errorMessage });
+        failed++;
+        logger.error({ err: error }, `Failed to fetch metadata for game: ${gameId}`);
+      }
+    }
+
+    return { success, failed, results };
   }
 }
 
