@@ -1,0 +1,43 @@
+name: 'Test, Lint & Type Check'
+description: 'Run type checking, linting, and tests for a Node.js project'
+
+inputs:
+  working-directory:
+    description: 'Working directory for the project'
+    required: true
+  build:
+    description: 'Whether to run build step'
+    required: false
+    default: 'false'
+  build-env:
+    description: 'Environment variables for build (multiline string)'
+    required: false
+    default: ''
+
+runs:
+  using: 'composite'
+  steps:
+    - name: 🔍 TypeScript type check
+      shell: bash
+      working-directory: ${{ inputs.working-directory }}
+      run: npm run type-check
+
+    - name: 🎨 Lint code
+      shell: bash
+      working-directory: ${{ inputs.working-directory }}
+      run: npm run lint
+
+    - name: 🧪 Run tests
+      shell: bash
+      working-directory: ${{ inputs.working-directory }}
+      run: npm test
+
+    - name: 🏗️ Build
+      if: inputs.build == 'true'
+      shell: bash
+      working-directory: ${{ inputs.working-directory }}
+      run: |
+        if [ -n "${{ inputs.build-env }}" ]; then
+          export ${{ inputs.build-env }}
+        fi
+        npm run build

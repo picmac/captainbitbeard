@@ -13,99 +13,56 @@ env:
 
 jobs:
   # ============================================
-  # Backend Tests
+  # Backend & Frontend Tests (Matrix)
   # ============================================
-  backend-test:
-    name: Backend - Test & Lint
+  test:
+    name: ${{ matrix.project }} - Test & Lint
     runs-on: self-hosted
+
+    strategy:
+      fail-fast: false
+      matrix:
+        project: [backend, frontend]
+        include:
+          - project: backend
+            build: false
+          - project: frontend
+            build: true
+            build-env: 'VITE_API_URL=http://localhost:3001'
+
     defaults:
       run:
-        working-directory: ./backend
+        working-directory: ./${{ matrix.project }}
 
     steps:
       - name: 🧹 Clean workspace
-        run: |
-          cd ${{ github.workspace }}
-          sudo rm -rf reports/ || true
-          sudo git clean -ffdx || true
-        working-directory: ${{ github.workspace }}
+        uses: ./.github/actions/cleanup-workspace
 
       - name: 📥 Checkout code
         uses: actions/checkout@v4
         with:
           clean: false
 
-      - name: 🔧 Setup Node.js
-        uses: actions/setup-node@v4
+      - name: 🔧 Setup Node.js & Dependencies
+        uses: ./.github/actions/setup-node-project
         with:
+          working-directory: ./${{ matrix.project }}
+          cache-dependency-path: ${{ matrix.project }}/package-lock.json
           node-version: ${{ env.NODE_VERSION }}
-          cache: 'npm'
-          cache-dependency-path: backend/package-lock.json
 
-      - name: 📦 Install dependencies
-        run: npm ci
-
-      - name: 🔍 TypeScript type check
-        run: npm run type-check
-
-      - name: 🎨 Lint code
-        run: npm run lint
-
-      - name: 🧪 Run tests
-        run: npm test
+      - name: 🧪 Test, Lint & Type Check
+        uses: ./.github/actions/test-lint-typecheck
+        with:
+          working-directory: ./${{ matrix.project }}
+          build: ${{ matrix.build }}
+          build-env: ${{ matrix.build-env }}
 
       - name: 📊 Upload coverage
+        if: matrix.project == 'backend'
         uses: codecov/codecov-action@v4
         with:
           files: ./backend/coverage/coverage-final.json
           flags: backend
-
-  # ============================================
-  # Frontend Tests
-  # ============================================
-  frontend-test:
-    name: Frontend - Test & Lint
-    runs-on: self-hosted
-    defaults:
-      run:
-        working-directory: ./frontend
-
-    steps:
-      - name: 🧹 Clean workspace
-        run: |
-          cd ${{ github.workspace }}
-          sudo rm -rf reports/ || true
-          sudo git clean -ffdx || true
-        working-directory: ${{ github.workspace }}
-
-      - name: 📥 Checkout code
-        uses: actions/checkout@v4
-        with:
-          clean: false
-
-      - name: 🔧 Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-          cache: 'npm'
-          cache-dependency-path: frontend/package-lock.json
-
-      - name: 📦 Install dependencies
-        run: npm ci
-
-      - name: 🔍 TypeScript type check
-        run: npm run type-check
-
-      - name: 🎨 Lint code
-        run: npm run lint
-
-      - name: 🧪 Run tests
-        run: npm run test
-
-      - name: 🏗️ Build
-        run: npm run build
-        env:
-          VITE_API_URL: http://localhost:3001
 
   # ============================================
   # Security Scanning
@@ -113,16 +70,14 @@ jobs:
   security-scan:
     name: Security - Dependency & Container Scan
     runs-on: self-hosted
-    needs: [backend-test, frontend-test]
+    needs: [test]
     permissions:
       security-events: write
       contents: read
 
     steps:
       - name: 🧹 Clean workspace
-        run: |
-          sudo rm -rf reports/ || true
-          sudo git clean -ffdx || true
+        uses: ./.github/actions/cleanup-workspace
 
       - name: 📥 Checkout code
         uses: actions/checkout@v4
@@ -142,15 +97,14 @@ jobs:
         with:
           sarif_file: 'trivy-results.sarif'
 
-      - name: 🔒 Backend - npm audit
-        working-directory: ./backend
-        run: npm audit --audit-level=moderate
-        continue-on-error: true
-
-      - name: 🔒 Frontend - npm audit
-        working-directory: ./frontend
-        run: npm audit --audit-level=moderate
-        continue-on-error: true
+      - name: 🔒 npm audit
+        run: |
+          echo "::group::Backend npm audit"
+          cd backend && npm audit --audit-level=moderate || true
+          echo "::endgroup::"
+          echo "::group::Frontend npm audit"
+          cd ../frontend && npm audit --audit-level=moderate || true
+          echo "::endgroup::"
 
   # ============================================
   # OWASP Dependency Check
@@ -158,13 +112,11 @@ jobs:
   owasp-check:
     name: Security - OWASP Dependency Check
     runs-on: self-hosted
-    needs: [backend-test, frontend-test]
+    needs: [test]
 
     steps:
       - name: 🧹 Clean workspace
-        run: |
-          sudo rm -rf reports/ || true
-          sudo git clean -ffdx || true
+        uses: ./.github/actions/cleanup-workspace
 
       - name: 📥 Checkout code
         uses: actions/checkout@v4
@@ -188,9 +140,9 @@ jobs:
   # Docker Build (Multi-Arch)
   # ============================================
   docker-build:
-    name: Docker - Multi-Arch Build
+    name: Docker - ${{ matrix.service }} (${{ matrix.platform }})
     runs-on: self-hosted
-    needs: [backend-test, frontend-test, security-scan]
+    needs: [test, security-scan]
     if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop'
 
     strategy:
@@ -241,49 +193,12 @@ jobs:
           cache-to: type=gha,mode=max
 
   # ============================================
-  # Integration Tests (Docker Compose)
-  # ============================================
-  # Disabled: Not running integration tests since we're not pushing to registry
-  # integration-test:
-  #   name: Integration Tests
-  #   runs-on: self-hosted
-  #   needs: [docker-build]
-  #   if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop'
-  #
-  #   steps:
-  #     - name: 📥 Checkout code
-  #       uses: actions/checkout@v4
-  #       with:
-  #         clean: false
-  #
-  #     - name: 🐳 Start services
-  #       run: |
-  #         cd docker
-  #         docker compose up -d
-  #         sleep 30
-  #
-  #     - name: 🏥 Health check
-  #       run: |
-  #         curl --fail http://localhost:3001/health || exit 1
-  #         curl --fail http://localhost:3000 || exit 1
-  #
-  #     - name: 🧪 Run integration tests
-  #       run: |
-  #         # TODO: Add integration test suite
-  #         echo "Integration tests would run here"
-  #
-  #     - name: 🛑 Stop services
-  #       run: |
-  #         cd docker
-  #         docker compose down
-
-  # ============================================
   # Deploy
   # ============================================
   deploy:
     name: Deploy to Self-Hosted Server
     runs-on: self-hosted
-    needs: [backend-test, frontend-test, security-scan]
+    needs: [test, security-scan]
     if: github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/heads/claude/')
 
     steps:
