@@ -36,7 +36,10 @@ jobs:
 
     steps:
       - name: 🧹 Clean workspace
-        uses: ./.github/actions/cleanup-workspace
+        run: |
+          cd ${{ github.workspace }}
+          sudo rm -rf reports/ || true
+          sudo git clean -ffdx || true
 
       - name: 📥 Checkout code
         uses: actions/checkout@v4
@@ -77,7 +80,10 @@ jobs:
 
     steps:
       - name: 🧹 Clean workspace
-        uses: ./.github/actions/cleanup-workspace
+        run: |
+          cd ${{ github.workspace }}
+          sudo rm -rf reports/ || true
+          sudo git clean -ffdx || true
 
       - name: 📥 Checkout code
         uses: actions/checkout@v4
@@ -116,7 +122,10 @@ jobs:
 
     steps:
       - name: 🧹 Clean workspace
-        uses: ./.github/actions/cleanup-workspace
+        run: |
+          cd ${{ github.workspace }}
+          sudo rm -rf reports/ || true
+          sudo git clean -ffdx || true
 
       - name: 📥 Checkout code
         uses: actions/checkout@v4
