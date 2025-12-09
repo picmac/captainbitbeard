@@ -234,7 +234,7 @@ jobs:
         with:
           context: ./${{ matrix.service }}
           platforms: ${{ matrix.platform }}
-          push: ${{ github.event_name != 'pull_request' }}
+          push: false  # Disabled: Not pushing to registry in this phase
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
@@ -243,38 +243,39 @@ jobs:
   # ============================================
   # Integration Tests (Docker Compose)
   # ============================================
-  integration-test:
-    name: Integration Tests
-    runs-on: self-hosted
-    needs: [docker-build]
-    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop'
-
-    steps:
-      - name: 📥 Checkout code
-        uses: actions/checkout@v4
-        with:
-          clean: false
-
-      - name: 🐳 Start services
-        run: |
-          cd docker
-          docker compose up -d
-          sleep 30
-
-      - name: 🏥 Health check
-        run: |
-          curl --fail http://localhost:3001/health || exit 1
-          curl --fail http://localhost:3000 || exit 1
-
-      - name: 🧪 Run integration tests
-        run: |
-          # TODO: Add integration test suite
-          echo "Integration tests would run here"
-
-      - name: 🛑 Stop services
-        run: |
-          cd docker
-          docker compose down
+  # Disabled: Not running integration tests since we're not pushing to registry
+  # integration-test:
+  #   name: Integration Tests
+  #   runs-on: self-hosted
+  #   needs: [docker-build]
+  #   if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop'
+  #
+  #   steps:
+  #     - name: 📥 Checkout code
+  #       uses: actions/checkout@v4
+  #       with:
+  #         clean: false
+  #
+  #     - name: 🐳 Start services
+  #       run: |
+  #         cd docker
+  #         docker compose up -d
+  #         sleep 30
+  #
+  #     - name: 🏥 Health check
+  #       run: |
+  #         curl --fail http://localhost:3001/health || exit 1
+  #         curl --fail http://localhost:3000 || exit 1
+  #
+  #     - name: 🧪 Run integration tests
+  #       run: |
+  #         # TODO: Add integration test suite
+  #         echo "Integration tests would run here"
+  #
+  #     - name: 🛑 Stop services
+  #       run: |
+  #         cd docker
+  #         docker compose down
 
   # ============================================
   # Deploy
