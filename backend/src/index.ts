@@ -7,6 +7,7 @@ import { logger } from './utils/logger';
 import { errorHandler } from './middleware/error-handler';
 import { requestLogger } from './middleware/request-logger';
 import { minioService } from './services/minio.service';
+import { runSetup } from './utils/setup';
 import routes from './routes';
 
 // Fix BigInt serialization
@@ -53,6 +54,9 @@ app.use(errorHandler);
 // Initialize services and start server
 const startServer = async (): Promise<void> => {
   try {
+    // Run application setup (create default admin, etc.)
+    await runSetup();
+
     // Initialize MinIO
     logger.info('🗄️  Initializing MinIO...');
     await minioService.initialize();
