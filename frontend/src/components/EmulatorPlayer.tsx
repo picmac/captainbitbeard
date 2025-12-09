@@ -11,6 +11,8 @@ interface EmulatorPlayerProps {
 declare global {
   interface Window {
     EJS_player: any;
+    EJS_emulator: any;
+    EJS_ready?: () => void;
     EJS_core: string;
     EJS_gameUrl: string;
     EJS_biosUrl?: string;
@@ -20,8 +22,6 @@ declare global {
     EJS_color: string;
     EJS_startOnLoaded: boolean;
     EJS_letterBox: string;
-    EJS_VirtualGamepadSettings: any;
-    EJS_Buttons: any;
   }
 }
 
@@ -76,6 +76,8 @@ export function EmulatorPlayer({
     script.async = true;
 
     script.onload = () => {
+      // Initialize emulator configuration
+      // The loader.js will automatically create the emulator instance
       initializeEmulator();
     };
 
@@ -88,9 +90,17 @@ export function EmulatorPlayer({
 
     return () => {
       // Cleanup
-      document.body.removeChild(script);
+      if (document.body.contains(script)) {
+        document.body.removeChild(script);
+      }
+      if (window.EJS_emulator) {
+        delete window.EJS_emulator;
+      }
       if (window.EJS_player) {
         delete window.EJS_player;
+      }
+      if (window.EJS_ready) {
+        delete window.EJS_ready;
       }
 
       // Unlock orientation
@@ -105,6 +115,7 @@ export function EmulatorPlayer({
       // Configure EmulatorJS
       window.EJS_core = getEmulatorCore(system);
       window.EJS_gameUrl = romUrl;
+      // Use local cores (downloaded from GitHub release v4.2.3)
       window.EJS_pathtodata = '/emulatorjs/data/';
       window.EJS_gameID = gameId;
       window.EJS_gameName = gameTitle;
@@ -112,74 +123,19 @@ export function EmulatorPlayer({
       window.EJS_startOnLoaded = true;
       window.EJS_letterBox = '#191970'; // Night sky background
 
-      // Portrait Mode Virtual Gamepad Settings (ROMM-style)
-      window.EJS_VirtualGamepadSettings = {
-        enabled: true,
-        opacity: 0.7,
-        style: 'portrait',
+      // Don't set EJS_VirtualGamepadSettings - let EmulatorJS use built-in defaults
+      // EmulatorJS automatically shows virtual gamepad on mobile devices
+      // and uses default layouts for each system (NES, SNES, GBA, etc.)
 
-        // D-Pad positioning (lower-left)
-        dpad: {
-          enabled: true,
-          bottom: '80px',
-          left: '20px',
-          size: '120px',
-        },
+      // Set the player container selector
+      // The loader.js will automatically create the emulator instance
+      window.EJS_player = '#emulator-container';
 
-        // Action buttons (lower-right)
-        actionButtons: {
-          enabled: true,
-          bottom: '80px',
-          right: '20px',
-          size: '50px',
-        },
-
-        // Start/Select (bottom center)
-        startSelect: {
-          enabled: true,
-          bottom: '20px',
-          centered: true,
-          size: '40px',
-        },
-
-        // Shoulder buttons (top corners)
-        shoulders: {
-          enabled: true,
-          top: '10px',
-          size: '60px',
-        },
-
-        // Haptic feedback
-        haptic: true,
+      // Set up ready callback
+      window.EJS_ready = () => {
+        setLoading(false);
+        console.log('🎮 Emulator ready');
       };
-
-      // Custom button configuration
-      window.EJS_Buttons = {
-        loadState: false, // Hide load state button
-        saveState: false, // Hide save state button
-        quickSave: true,  // Enable quick save
-        quickLoad: true,  // Enable quick load
-        screenshot: false,
-        fullscreen: true,
-        volume: true,
-        settings: true,
-      };
-
-      // Initialize player
-      if (containerRef.current) {
-        const player = new window.EJS_player('#emulator-container', {
-          onReady: () => {
-            setLoading(false);
-            console.log('🎮 Emulator ready');
-          },
-          onError: (err: any) => {
-            setError(err.message || 'Emulator error');
-            setLoading(false);
-          },
-        });
-
-        window.EJS_player = player;
-      }
     } catch (err: any) {
       setError(err.message || 'Failed to initialize emulator');
       setLoading(false);

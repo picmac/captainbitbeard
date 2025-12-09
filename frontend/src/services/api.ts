@@ -52,6 +52,70 @@ export interface SystemsResponse {
   };
 }
 
+// Auth Types
+export interface LoginRequest {
+  username: string;
+  password: string;
+}
+
+export interface LoginResponse {
+  token: string;
+  user: {
+    id: string;
+    username: string;
+    email: string;
+    role: string;
+  };
+}
+
+export interface RegisterRequest {
+  username: string;
+  email: string;
+  password: string;
+}
+
+export interface User {
+  id: string;
+  username: string;
+  email: string;
+  role: string;
+}
+
+// Auth API
+export const authApi = {
+  // Login
+  login: async (credentials: LoginRequest): Promise<LoginResponse> => {
+    const response = await api.post('/auth/login', credentials);
+    return response.data;
+  },
+
+  // Register
+  register: async (data: RegisterRequest): Promise<{ message: string; user: User }> => {
+    const response = await api.post('/auth/register', data);
+    return response.data;
+  },
+
+  // Get current user
+  me: async (): Promise<User> => {
+    const response = await api.get('/auth/me');
+    return response.data;
+  },
+
+  // Logout
+  logout: async (): Promise<void> => {
+    await api.post('/auth/logout');
+  },
+};
+
+// Add token to requests
+export const setAuthToken = (token: string | null) => {
+  if (token) {
+    api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+  } else {
+    delete api.defaults.headers.common['Authorization'];
+  }
+};
+
 // Game API
 export const gameApi = {
   // Get all games

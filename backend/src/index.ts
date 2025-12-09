@@ -9,6 +9,11 @@ import { requestLogger } from './middleware/request-logger';
 import { minioService } from './services/minio.service';
 import routes from './routes';
 
+// Fix BigInt serialization
+(BigInt.prototype as any).toJSON = function () {
+  return this.toString();
+};
+
 const app: Application = express();
 
 // Security middleware
