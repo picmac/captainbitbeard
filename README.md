@@ -46,20 +46,23 @@ cp .env.example .env
 cd docker
 docker-compose up -d
 
-# 4. Create admin user
-docker-compose exec backend npm run create-admin
-
-# 5. Open in browser
+# 4. Open in browser
 # Frontend: http://localhost:3000
 # MinIO Console: http://localhost:9001
 ```
 
+**Note:** An admin user (username: `admin`, password: `admin`) is automatically created on first startup. You can customize this via environment variables:
+- `DEFAULT_ADMIN_USERNAME` - Custom admin username (default: admin)
+- `DEFAULT_ADMIN_PASSWORD` - Custom admin password (default: admin)
+- `DEFAULT_ADMIN_EMAIL` - Custom admin email (default: admin@captainbitbeard.local)
+
 ### First Steps
 
-1. **Login** with your admin credentials
-2. **Upload ROMs** via the admin panel
-3. **Scrape Metadata** from ScreenScraper.fr
-4. **Start Gaming!** Browse your library and play
+1. **Login** with default admin credentials (`admin` / `admin`)
+2. **Change the default password** in the admin settings
+3. **Upload ROMs** via the admin panel
+4. **Scrape Metadata** from ScreenScraper.fr
+5. **Start Gaming!** Browse your library and play
 
 ## 📱 Mobile Gaming
 
