@@ -127,7 +127,7 @@ export class GameService {
   /**
    * Get game by ID
    */
-  async getGameById(id: string): Promise<Game | null> {
+  async getGameById(id: string): Promise<Prisma.GameGetPayload<{ include: { metadata: true; screenshots: true } }> | null> {
     return prisma.game.findUnique({
       where: { id },
       include: {
@@ -317,7 +317,7 @@ export class GameService {
             );
 
             // Create screenshot record
-            await prisma.gameScreenshot.create({
+            await prisma.screenshot.create({
               data: {
                 gameId: game.id,
                 url: screenshotUrl,

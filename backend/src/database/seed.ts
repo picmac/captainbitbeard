@@ -95,7 +95,7 @@ async function seed(): Promise<void> {
 
     logger.info('✅ Database seeded successfully!');
   } catch (error) {
-    logger.error('❌ Error seeding database:', error);
+    logger.error({ err: error }, '❌ Error seeding database:');
     throw error;
   } finally {
     await prisma.$disconnect();

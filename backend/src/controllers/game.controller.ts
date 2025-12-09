@@ -250,7 +250,7 @@ export class GameController {
         throw new AppError('No ROM files provided', 400);
       }
 
-      const { system, autoScrape } = req.body;
+      const { system, autoScrape } = req.body as { system?: string; autoScrape?: string | boolean };
 
       if (!system) {
         throw new AppError('System is required', 400);
@@ -332,7 +332,7 @@ export class GameController {
    */
   async bulkScrapeMetadata(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const { gameIds } = req.body;
+      const { gameIds } = req.body as { gameIds?: unknown };
 
       if (!gameIds || !Array.isArray(gameIds) || gameIds.length === 0) {
         throw new AppError('Game IDs array is required', 400);
