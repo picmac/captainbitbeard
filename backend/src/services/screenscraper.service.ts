@@ -20,6 +20,24 @@ export interface ScreenScraperGameInfo {
   screenshotUrls?: string[];
 }
 
+interface ScreenScraperGame {
+  id: string;
+  noms: Array<{ region: string; text: string }>;
+  synopsis?: Array<{ langue: string; text: string }>;
+  dates?: Array<{ region: string; text: string }>;
+  developpeur?: { text: string };
+  editeur?: { text: string };
+  genres?: Array<{ id: string; noms: Array<{ text: string }> }>;
+  joueurs?: { text: string };
+  note?: { text: string };
+  medias?: Array<{
+    type: string;
+    format: string;
+    region?: string;
+    url: string;
+  }>;
+}
+
 interface ScreenScraperResponse {
   header: {
     APIversion: string;
@@ -27,23 +45,7 @@ interface ScreenScraperResponse {
     success: string;
   };
   response: {
-    jeux?: Array<{
-      id: string;
-      noms: Array<{ region: string; text: string }>;
-      synopsis?: Array<{ langue: string; text: string }>;
-      dates?: Array<{ region: string; text: string }>;
-      developpeur?: { text: string };
-      editeur?: { text: string };
-      genres?: Array<{ id: string; noms: Array<{ text: string }> }>;
-      joueurs?: { text: string };
-      note?: { text: string };
-      medias?: Array<{
-        type: string;
-        format: string;
-        region?: string;
-        url: string;
-      }>;
-    }>;
+    jeux?: ScreenScraperGame[];
   };
 }
 
@@ -212,20 +214,20 @@ export class ScreenScraperService {
   /**
    * Parse ScreenScraper game response to our format
    */
-  private parseGameInfo(game: ScreenScraperResponse['response']['jeux'][0]): ScreenScraperGameInfo {
+  private parseGameInfo(game: ScreenScraperGame): ScreenScraperGameInfo {
     // Get title (prefer English/US)
     const title =
-      game.noms.find((n) => n.region === 'us' || n.region === 'wor' || n.region === 'eu')?.text ||
+      game.noms.find((n: { region: string; text: string }) => n.region === 'us' || n.region === 'wor' || n.region === 'eu')?.text ||
       game.noms[0]?.text ||
       'Unknown';
 
     // Get description (prefer English)
     const description =
-      game.synopsis?.find((s) => s.langue === 'en' || s.langue === 'us')?.text;
+      game.synopsis?.find((s: { langue: string; text: string }) => s.langue === 'en' || s.langue === 'us')?.text;
 
     // Get release date (prefer US/World)
     const releaseDate =
-      game.dates?.find((d) => d.region === 'us' || d.region === 'wor' || d.region === 'eu')?.text;
+      game.dates?.find((d: { region: string; text: string }) => d.region === 'us' || d.region === 'wor' || d.region === 'eu')?.text;
 
     // Get genre
     const genre = game.genres?.[0]?.noms?.[0]?.text;
@@ -238,7 +240,7 @@ export class ScreenScraperService {
 
     // Get cover URL (prefer box-2D front)
     const coverMedia = game.medias?.find(
-      (m) =>
+      (m: { type: string; format: string; region?: string; url: string }) =>
         m.type === 'box-2D' &&
         m.format === 'png' &&
         (!m.region || m.region === 'us' || m.region === 'wor')
@@ -248,9 +250,9 @@ export class ScreenScraperService {
     // Get screenshots
     const screenshotUrls =
       game.medias
-        ?.filter((m) => m.type === 'ss' && m.format === 'png')
+        ?.filter((m: { type: string; format: string; region?: string; url: string }) => m.type === 'ss' && m.format === 'png')
         .slice(0, 4) // Limit to 4 screenshots
-        .map((m) => m.url) || [];
+        .map((m: { type: string; format: string; region?: string; url: string }) => m.url) || [];
 
     return {
       id: game.id,
@@ -309,7 +311,7 @@ export class ScreenScraperService {
   /**
    * Get system info
    */
-  async getSystemInfo(systemId: string) {
+  async getSystemInfo(_systemId: string): Promise<unknown> {
     if (!this.isConfigured()) {
       return null;
     }
