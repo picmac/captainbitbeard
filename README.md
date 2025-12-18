@@ -42,11 +42,14 @@ cd captainbitbeard
 cp .env.example .env
 # Edit .env with your settings (important: change passwords!)
 
-# 3. Start all services
+# 3. Download EmulatorJS cores (required for gameplay)
+./scripts/download-cores.sh
+
+# 4. Start all services
 cd docker
 docker-compose up -d
 
-# 4. Open in browser
+# 5. Open in browser
 # Frontend: http://localhost:3000
 # MinIO Console: http://localhost:9001
 ```
