@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import gameRoutes from './game.routes';
 import authRoutes from './auth.routes';
+import favoriteRoutes from './favorite.routes';
 
 const router = Router();
 
@@ -16,6 +17,7 @@ router.get('/', (_req, res) => {
 // Mount routes
 router.use('/auth', authRoutes);
 router.use('/games', gameRoutes);
+router.use('/favorites', favoriteRoutes);
 
 // TODO: Add more route modules
 // import userRoutes from './user.routes';
