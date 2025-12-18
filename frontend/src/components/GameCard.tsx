@@ -94,6 +94,23 @@ export function GameCard({ game, onMetadataFetched }: GameCardProps) {
           <p className="text-pixel mt-1 text-[8px] uppercase text-wood-brown">
             {game.system}
           </p>
+          {game.description && (
+            <p className="text-pixel mt-1 text-[8px] text-ocean-dark line-clamp-2">
+              {game.description}
+            </p>
+          )}
+          {(game.developer || game.publisher) && (
+            <p className="text-pixel mt-1 text-[7px] text-wood-brown">
+              {game.developer && `Dev: ${game.developer}`}
+              {game.developer && game.publisher && ' • '}
+              {game.publisher && `Pub: ${game.publisher}`}
+            </p>
+          )}
+          {game.releaseDate && (
+            <p className="text-pixel mt-1 text-[7px] text-wood-brown">
+              {new Date(game.releaseDate).getFullYear()}
+            </p>
+          )}
         </div>
       </div>
 
