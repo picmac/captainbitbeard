@@ -61,3 +61,4 @@ logs/
 # Security scanning
 trivy-results.sarif
 .cache/
+reports/
