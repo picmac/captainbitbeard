@@ -80,6 +80,7 @@ services:
       MINIO_SECRET_KEY: ${MINIO_SECRET_KEY}
       MINIO_BUCKET: ${MINIO_BUCKET:-captain-bitbeard}
       MINIO_USE_SSL: ${MINIO_USE_SSL:-false}
+      SERVER_HOST: ${SERVER_HOST:-localhost}
       JWT_SECRET: ${JWT_SECRET:?JWT_SECRET must be set}
       JWT_EXPIRES_IN: ${JWT_EXPIRES_IN:-7d}
       SESSION_SECRET: ${SESSION_SECRET:?SESSION_SECRET must be set}

@@ -206,11 +206,17 @@ export class MinioService {
    */
   async getRomDownloadUrl(romPath: string, expiresIn: number = 3600): Promise<string> {
     try {
-      const url = await this.client.presignedGetObject(
+      let url = await this.client.presignedGetObject(
         this.bucket,
         romPath,
         expiresIn
       );
+
+      // Replace internal Docker hostname with external host for browser access
+      const serverHost = process.env.SERVER_HOST || 'localhost';
+      const minioPort = config.minio.port;
+      url = url.replace(`http://${config.minio.endpoint}:${minioPort}`, `http://${serverHost}:${minioPort}`);
+
       return url;
     } catch (error) {
       logger.error({ err: error }, `Failed to get presigned URL for: ${romPath}`);
@@ -282,7 +288,8 @@ export class MinioService {
    */
   getPublicUrl(objectName: string): string {
     const protocol = config.minio.useSSL ? 'https' : 'http';
-    return `${protocol}://${config.minio.endpoint}:${config.minio.port}/${this.bucket}/${objectName}`;
+    const serverHost = process.env.SERVER_HOST || 'localhost';
+    return `${protocol}://${serverHost}:${config.minio.port}/${this.bucket}/${objectName}`;
   }
 
   /**
