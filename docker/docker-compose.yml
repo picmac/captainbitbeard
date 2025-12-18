@@ -73,6 +73,7 @@ services:
     environment:
       NODE_ENV: ${NODE_ENV:-development}
       PORT: 3001
+      BACKEND_URL: ${BACKEND_URL:-http://localhost:3001}
       DATABASE_URL: postgresql://${POSTGRES_USER:-bitbeard}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-captainbitbeard}
       MINIO_ENDPOINT: ${MINIO_ENDPOINT:-minio}
       MINIO_PORT: ${MINIO_PORT:-9000}

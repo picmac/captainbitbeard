@@ -144,8 +144,10 @@ export class GameService {
     const game = await this.getGameById(id);
     if (!game) return null;
 
-    // Generate presigned URL for ROM download
-    const romDownloadUrl = await minioService.getRomDownloadUrl(game.romPath);
+    // Use backend streaming endpoint instead of presigned URL
+    // This avoids signature issues when replacing internal hostnames
+    const backendUrl = process.env.BACKEND_URL || 'http://localhost:3001';
+    const romDownloadUrl = `${backendUrl}/api/games/${id}/rom`;
 
     return {
       ...game,

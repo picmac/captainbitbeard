@@ -348,6 +348,40 @@ export class GameController {
       next(error);
     }
   }
+
+  /**
+   * Stream ROM file directly
+   * GET /api/games/:id/rom
+   */
+  async streamRom(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const { id } = req.params;
+      const game = await gameService.getGameById(id);
+
+      if (!game) {
+        throw new AppError('Game not found', 404);
+      }
+
+      // Import minioService here to avoid circular dependency
+      const { minioService } = await import('../services/minio.service');
+
+      // Get ROM stream from MinIO
+      const romStream = await minioService.streamRom(game.romPath);
+
+      // Set headers for ROM download
+      const fileName = game.romPath.split('/').pop() || 'game.rom';
+      res.setHeader('Content-Type', 'application/octet-stream');
+      res.setHeader('Content-Disposition', `attachment; filename="${fileName}"`);
+      res.setHeader('Access-Control-Allow-Origin', '*');
+      res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
+      res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+
+      // Pipe the stream to response
+      romStream.pipe(res);
+    } catch (error) {
+      next(error);
+    }
+  }
 }
 
 export const gameController = new GameController();
