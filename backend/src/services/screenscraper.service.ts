@@ -45,7 +45,8 @@ interface ScreenScraperResponse {
     success: string;
   };
   response: {
-    jeux?: ScreenScraperGame[];
+    jeu?: ScreenScraperGame;  // Single game result
+    jeux?: ScreenScraperGame[];  // Multiple games result (search)
   };
 }
 
@@ -57,38 +58,42 @@ export class ScreenScraperService {
   private readonly devPassword: string;
   private readonly softName: string;
 
-  // System name mapping: EmulatorJS -> ScreenScraper
+  // System name mapping: EmulatorJS -> ScreenScraper System ID
+  // Full list: https://www.screenscraper.fr/api2/systemesListe.php
   private readonly systemMapping: Record<string, string> = {
-    nes: 'nes',
-    snes: 'snes',
-    n64: 'n64',
-    gb: 'gb',
-    gbc: 'gbc',
-    gba: 'gba',
-    nds: 'nds',
-    genesis: 'megadrive',
-    megadrive: 'megadrive',
-    mastersystem: 'mastersystem',
-    gamegear: 'gamegear',
-    saturn: 'saturn',
-    dreamcast: 'dreamcast',
-    psx: 'psx',
-    ps1: 'psx',
-    psp: 'psp',
-    arcade: 'mame',
-    mame: 'mame',
-    neogeo: 'neogeo',
-    atari2600: 'atari2600',
-    atari5200: 'atari5200',
-    atari7800: 'atari7800',
-    lynx: 'lynx',
-    jaguar: 'jaguar',
-    virtualboy: 'virtualboy',
-    wonderswan: 'wonderswan',
-    wonderswancolor: 'wonderswancolor',
-    ngp: 'ngp',
-    ngpc: 'ngpc',
-    pcengine: 'pcengine',
+    nes: '3',           // Nintendo NES
+    snes: '4',          // Super Nintendo
+    n64: '14',          // Nintendo 64
+    gb: '9',            // Game Boy
+    gbc: '10',          // Game Boy Color
+    gba: '12',          // Game Boy Advance
+    nds: '15',          // Nintendo DS
+    genesis: '1',       // Sega Genesis/Mega Drive
+    megadrive: '1',     // Sega Mega Drive
+    sms: '2',           // Sega Master System
+    mastersystem: '2',  // Sega Master System
+    gg: '21',           // Sega Game Gear
+    gamegear: '21',     // Sega Game Gear
+    saturn: '22',       // Sega Saturn
+    dreamcast: '23',    // Sega Dreamcast
+    psx: '57',          // Sony PlayStation
+    ps1: '57',          // Sony PlayStation
+    ps2: '58',          // Sony PlayStation 2
+    psp: '61',          // Sony PSP
+    arcade: '75',       // MAME
+    mame: '75',         // MAME
+    neogeo: '142',      // SNK Neo Geo
+    atari2600: '26',    // Atari 2600
+    atari5200: '40',    // Atari 5200
+    atari7800: '41',    // Atari 7800
+    lynx: '28',         // Atari Lynx
+    jaguar: '27',       // Atari Jaguar
+    virtualboy: '11',   // Nintendo Virtual Boy
+    wonderswan: '45',   // WonderSwan
+    wonderswancolor: '46', // WonderSwan Color
+    ngp: '82',          // Neo Geo Pocket
+    ngpc: '83',         // Neo Geo Pocket Color
+    pcengine: '31',     // PC Engine/TurboGrafx-16
   };
 
   constructor() {
@@ -157,12 +162,18 @@ export class ScreenScraperService {
 
       const data = (await response.json()) as ScreenScraperResponse;
 
-      if (data.header.success !== 'true' || !data.response.jeux || data.response.jeux.length === 0) {
+      if (data.header.success !== 'true') {
         logger.info(`No results found for: ${cleanName}`);
         return null;
       }
 
-      const game = data.response.jeux[0];
+      // API returns either 'jeu' (single) or 'jeux' (multiple)
+      const game = data.response.jeu || data.response.jeux?.[0];
+      if (!game) {
+        logger.info(`No results found for: ${cleanName}`);
+        return null;
+      }
+
       return this.parseGameInfo(game);
     } catch (error) {
       logger.error({ err: error }, `Failed to fetch metadata for: ${romName}`);
@@ -273,18 +284,24 @@ export class ScreenScraperService {
    * Clean ROM name for better search results
    */
   private cleanRomName(romName: string): string {
-    return (
-      romName
-        // Remove file extension
-        .replace(/\.(zip|rar|7z|nes|snes|sfc|smc|gb|gbc|gba|n64|z64|nds|gen|md|sms|gg|iso|bin|cue|psx|psp)$/i, '')
-        // Remove version/region tags in brackets/parentheses
-        .replace(/[\[\(].*?[\]\)]/g, '')
-        // Remove common suffixes
-        .replace(/\s*-\s*(U|E|J|USA|Europe|Japan|World).*$/i, '')
-        // Remove extra whitespace
-        .replace(/\s+/g, ' ')
-        .trim()
-    );
+    let cleaned = romName
+      // Remove file extension
+      .replace(/\.(zip|rar|7z|nes|snes|sfc|smc|gb|gbc|gba|n64|z64|nds|gen|md|sms|gg|iso|bin|cue|psx|psp)$/i, '')
+      // Remove version/region tags in brackets/parentheses
+      .replace(/[\[\(].*?[\]\)]/g, '')
+      // Remove common suffixes
+      .replace(/\s*-\s*(U|E|J|USA|Europe|Japan|World).*$/i, '')
+      // Remove extra whitespace
+      .replace(/\s+/g, ' ')
+      .trim();
+
+    // Move "The" from end to beginning (e.g., "Addams Family, The" -> "The Addams Family")
+    cleaned = cleaned.replace(/,\s*The$/i, '');
+
+    // Remove "The" from beginning for better matching (many games drop "The")
+    cleaned = cleaned.replace(/^The\s+/i, '');
+
+    return cleaned.trim();
   }
 
   /**
