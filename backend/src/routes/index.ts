@@ -6,6 +6,7 @@ import playHistoryRoutes from './playhistory.routes';
 import collectionRoutes from './collection.routes';
 import collectionShareRoutes from './collectionshare.routes';
 import userprofileRoutes from './userprofile.routes';
+import saveStateRoutes from './savestate.routes';
 
 const router = Router();
 
@@ -26,5 +27,6 @@ router.use('/play-history', playHistoryRoutes);
 router.use('/collections', collectionRoutes);
 router.use('/collection-sharing', collectionShareRoutes);
 router.use('/profile', userprofileRoutes);
+router.use('/save-states', saveStateRoutes);
 
 export default router;
