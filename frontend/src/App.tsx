@@ -9,6 +9,7 @@ import { CollectionsPage } from './pages/CollectionsPage';
 import { CollectionDetailPage } from './pages/CollectionDetailPage';
 import { UserProfilePage } from './pages/UserProfilePage';
 import { SharedCollectionPage } from './pages/SharedCollectionPage';
+import { SaveStatesPage } from './pages/SaveStatesPage';
 
 function App() {
   return (
@@ -24,6 +25,7 @@ function App() {
         <Route path="/shared/:shareLink" element={<SharedCollectionPage />} />
         <Route path="/profile" element={<UserProfilePage />} />
         <Route path="/profile/:userId" element={<UserProfilePage />} />
+        <Route path="/save-states" element={<SaveStatesPage />} />
         <Route path="/admin" element={<AdminPage />} />
       </Routes>
     </div>

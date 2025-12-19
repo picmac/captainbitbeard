@@ -89,9 +89,12 @@ export function GameLibraryPage() {
       </div>
 
       {/* Navigation Links */}
-      <div className="mt-8 flex gap-4 justify-center">
+      <div className="mt-8 flex gap-4 justify-center flex-wrap">
         <Link to="/collections" className="btn-retro text-xs">
           📚 MY COLLECTIONS
+        </Link>
+        <Link to="/save-states" className="btn-retro text-xs">
+          💾 MY SAVES
         </Link>
         <Link to="/profile" className="btn-retro text-xs">
           👤 MY PROFILE

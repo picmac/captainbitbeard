@@ -1,0 +1,182 @@
+import { useState, useEffect } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import { saveStateApi, type SaveState } from '../services/api';
+import { useAuth } from '../context/AuthContext';
+
+export function SaveStatesPage() {
+  const { user } = useAuth();
+  const navigate = useNavigate();
+  const [saveStates, setSaveStates] = useState<SaveState[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+
+  useEffect(() => {
+    if (!user) {
+      navigate('/login');
+      return;
+    }
+    loadSaveStates();
+  }, [user, navigate]);
+
+  const loadSaveStates = async () => {
+    setLoading(true);
+    try {
+      const response = await saveStateApi.getMySaveStates();
+      setSaveStates(response.data.saveStates);
+    } catch (err: any) {
+      setError(err.response?.data?.message || 'Failed to load save states');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleDelete = async (id: string) => {
+    if (!window.confirm('Delete this save state?')) return;
+
+    try {
+      await saveStateApi.deleteSaveState(id);
+      await loadSaveStates();
+    } catch (err: any) {
+      alert(err.response?.data?.message || 'Failed to delete save state');
+    }
+  };
+
+  if (!user) {
+    return null;
+  }
+
+  return (
+    <div className="min-h-screen p-4">
+      {/* Header */}
+      <div className="mb-6">
+        <h1 className="text-pixel mb-4 text-center text-2xl text-pirate-gold">
+          💾 MY SAVE STATES
+        </h1>
+
+        {/* Back to Library */}
+        <div className="mx-auto max-w-4xl mb-4">
+          <Link to="/library" className="btn-retro text-xs inline-block">
+            ← BACK TO LIBRARY
+          </Link>
+        </div>
+      </div>
+
+      {/* Content */}
+      <div className="mx-auto max-w-4xl">
+        {loading ? (
+          <div className="border-4 border-wood-brown bg-sand-beige p-8 text-center">
+            <p className="text-pixel text-sm text-wood-brown">LOADING...</p>
+          </div>
+        ) : error ? (
+          <div className="border-4 border-wood-brown bg-sand-beige p-8 text-center">
+            <p className="text-pixel text-sm text-blood-red mb-4">{error}</p>
+            <button onClick={loadSaveStates} className="btn-retro text-xs">
+              TRY AGAIN
+            </button>
+          </div>
+        ) : saveStates.length === 0 ? (
+          <div className="border-4 border-wood-brown bg-sand-beige p-8 text-center">
+            <p className="text-pixel text-sm text-ocean-dark mb-4">
+              💾 NO SAVE STATES YET
+            </p>
+            <p className="text-pixel text-xs text-wood-brown mb-6">
+              Save states are created while playing games
+            </p>
+            <Link to="/library" className="btn-retro text-xs">
+              GO TO LIBRARY
+            </Link>
+          </div>
+        ) : (
+          <div className="space-y-4">
+            {/* Group by game */}
+            {Object.entries(
+              saveStates.reduce((acc, saveState) => {
+                const gameId = saveState.game.id;
+                if (!acc[gameId]) {
+                  acc[gameId] = [];
+                }
+                acc[gameId].push(saveState);
+                return acc;
+              }, {} as Record<string, SaveState[]>)
+            ).map(([gameId, gameSaveStates]) => {
+              const game = gameSaveStates[0].game;
+              return (
+                <div key={gameId} className="border-4 border-wood-brown bg-sand-beige p-4">
+                  {/* Game Header */}
+                  <div className="flex items-center gap-4 mb-4">
+                    {game.coverUrl && (
+                      <img
+                        src={game.coverUrl}
+                        alt={game.title}
+                        className="w-16 h-24 object-cover border-2 border-wood-brown"
+                      />
+                    )}
+                    <div className="flex-1">
+                      <h2 className="text-pixel text-sm text-ocean-dark mb-1">
+                        {game.title}
+                      </h2>
+                      <p className="text-pixel text-xs text-wood-brown">
+                        {game.system.toUpperCase()} • {gameSaveStates.length}{' '}
+                        {gameSaveStates.length === 1 ? 'save' : 'saves'}
+                      </p>
+                    </div>
+                    <Link
+                      to={`/play/${gameId}`}
+                      className="btn-retro text-xs whitespace-nowrap"
+                    >
+                      ▶️ PLAY
+                    </Link>
+                  </div>
+
+                  {/* Save States */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    {gameSaveStates
+                      .sort((a, b) => a.slot - b.slot)
+                      .map((saveState) => (
+                        <div
+                          key={saveState.id}
+                          className="border-2 border-wood-brown bg-white p-3 flex gap-3"
+                        >
+                          {/* Screenshot */}
+                          {saveState.screenshotUrl && (
+                            <img
+                              src={saveState.screenshotUrl}
+                              alt={`Slot ${saveState.slot}`}
+                              className="w-20 h-20 object-cover border-2 border-wood-brown"
+                            />
+                          )}
+
+                          {/* Info */}
+                          <div className="flex-1 min-w-0">
+                            <div className="text-pixel text-xs text-ocean-dark font-bold mb-1">
+                              SLOT {saveState.slot}
+                            </div>
+                            {saveState.description && (
+                              <div className="text-pixel text-xs text-wood-brown mb-1">
+                                {saveState.description}
+                              </div>
+                            )}
+                            <div className="text-pixel text-[10px] text-wood-brown">
+                              {new Date(saveState.updatedAt).toLocaleString()}
+                            </div>
+                          </div>
+
+                          {/* Delete Button */}
+                          <button
+                            onClick={() => handleDelete(saveState.id)}
+                            className="btn-retro bg-blood-red text-[10px] px-2 self-start"
+                          >
+                            🗑️
+                          </button>
+                        </div>
+                      ))}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}

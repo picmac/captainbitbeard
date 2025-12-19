@@ -621,3 +621,92 @@ export const collectionShareApi = {
     return response.data;
   },
 };
+
+// Save State Types
+export interface SaveState {
+  id: string;
+  userId: string;
+  gameId: string;
+  slot: number;
+  statePath: string;
+  screenshotUrl?: string | null;
+  description?: string | null;
+  createdAt: string;
+  updatedAt: string;
+  game: {
+    id: string;
+    title: string;
+    system: string;
+    coverUrl?: string | null;
+  };
+}
+
+export interface SaveStateResponse {
+  status: string;
+  data: {
+    saveState: SaveState;
+  };
+}
+
+export interface SaveStatesResponse {
+  status: string;
+  data: {
+    saveStates: SaveState[];
+  };
+}
+
+export interface CreateSaveStateRequest {
+  slot: number;
+  stateData: string; // Base64 encoded save state data
+  screenshot?: string; // Base64 encoded screenshot
+  description?: string;
+}
+
+// Save State API
+export const saveStateApi = {
+  // Create or update save state
+  createSaveState: async (
+    gameId: string,
+    data: CreateSaveStateRequest
+  ): Promise<SaveStateResponse> => {
+    const response = await api.post(`/save-states/game/${gameId}`, data);
+    return response.data;
+  },
+
+  // Get all save states for current user
+  getMySaveStates: async (): Promise<SaveStatesResponse> => {
+    const response = await api.get('/save-states/my-saves');
+    return response.data;
+  },
+
+  // Get save states for a specific game
+  getSaveStatesByGame: async (gameId: string): Promise<SaveStatesResponse> => {
+    const response = await api.get(`/save-states/game/${gameId}`);
+    return response.data;
+  },
+
+  // Get specific save state by ID
+  getSaveStateById: async (id: string): Promise<SaveStateResponse> => {
+    const response = await api.get(`/save-states/${id}`);
+    return response.data;
+  },
+
+  // Load save state data (returns blob)
+  loadSaveState: async (id: string): Promise<Blob> => {
+    const response = await api.get(`/save-states/${id}/load`, {
+      responseType: 'blob',
+    });
+    return response.data;
+  },
+
+  // Update save state description
+  updateSaveState: async (id: string, description?: string): Promise<SaveStateResponse> => {
+    const response = await api.patch(`/save-states/${id}`, { description });
+    return response.data;
+  },
+
+  // Delete save state
+  deleteSaveState: async (id: string): Promise<void> => {
+    await api.delete(`/save-states/${id}`);
+  },
+};
