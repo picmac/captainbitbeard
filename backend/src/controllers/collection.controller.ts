@@ -16,6 +16,12 @@ interface ReorderGamesBody {
   gameOrders: Array<{ gameId: string; order: number }>;
 }
 
+// Helper function to extract error message
+function getErrorMessage(error: unknown): string {
+  if (error instanceof Error) return error.message;
+  return String(error);
+}
+
 export class CollectionController {
   // Create a new collection
   async createCollection(req: AuthRequest, res: Response): Promise<void> {
@@ -41,11 +47,11 @@ export class CollectionController {
         status: 'success',
         data: { collection },
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error creating collection:', error);
       res.status(500).json({
         status: 'error',
-        message: error.message || 'Failed to create collection',
+        message: getErrorMessage(error) || 'Failed to create collection',
       });
     }
   }
@@ -61,7 +67,7 @@ export class CollectionController {
         status: 'success',
         data: { collections },
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error fetching collections:', error);
       res.status(500).json({
         status: 'error',
@@ -82,12 +88,12 @@ export class CollectionController {
         status: 'success',
         data: { collection },
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error fetching collection:', error);
-      const statusCode = error.message === 'Collection not found' ? 404 : 500;
+      const statusCode = getErrorMessage(error) === 'Collection not found' ? 404 : 500;
       res.status(statusCode).json({
         status: 'error',
-        message: error.message || 'Failed to fetch collection',
+        message: getErrorMessage(error) || 'Failed to fetch collection',
       });
     }
   }
@@ -113,12 +119,12 @@ export class CollectionController {
         status: 'success',
         data: { collection },
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error updating collection:', error);
-      const statusCode = error.message === 'Collection not found' ? 404 : 500;
+      const statusCode = getErrorMessage(error) === 'Collection not found' ? 404 : 500;
       res.status(statusCode).json({
         status: 'error',
-        message: error.message || 'Failed to update collection',
+        message: getErrorMessage(error) || 'Failed to update collection',
       });
     }
   }
@@ -135,12 +141,12 @@ export class CollectionController {
         status: 'success',
         message: 'Collection deleted successfully',
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error deleting collection:', error);
-      const statusCode = error.message === 'Collection not found' ? 404 : 500;
+      const statusCode = getErrorMessage(error) === 'Collection not found' ? 404 : 500;
       res.status(statusCode).json({
         status: 'error',
-        message: error.message || 'Failed to delete collection',
+        message: getErrorMessage(error) || 'Failed to delete collection',
       });
     }
   }
@@ -161,17 +167,17 @@ export class CollectionController {
         status: 'success',
         data: { collectionGame },
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error adding game to collection:', error);
       let statusCode = 500;
-      if (error.message === 'Collection not found' || error.message === 'Game not found') {
+      if (getErrorMessage(error) === 'Collection not found' || getErrorMessage(error) === 'Game not found') {
         statusCode = 404;
-      } else if (error.message === 'Game already in collection') {
+      } else if (getErrorMessage(error) === 'Game already in collection') {
         statusCode = 409;
       }
       res.status(statusCode).json({
         status: 'error',
-        message: error.message || 'Failed to add game to collection',
+        message: getErrorMessage(error) || 'Failed to add game to collection',
       });
     }
   }
@@ -188,12 +194,12 @@ export class CollectionController {
         status: 'success',
         message: 'Game removed from collection',
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error removing game from collection:', error);
-      const statusCode = error.message === 'Collection not found' ? 404 : 500;
+      const statusCode = getErrorMessage(error) === 'Collection not found' ? 404 : 500;
       res.status(statusCode).json({
         status: 'error',
-        message: error.message || 'Failed to remove game from collection',
+        message: getErrorMessage(error) || 'Failed to remove game from collection',
       });
     }
   }
@@ -223,12 +229,12 @@ export class CollectionController {
         status: 'success',
         data: { collection },
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error reordering games:', error);
-      const statusCode = error.message === 'Collection not found' ? 404 : 500;
+      const statusCode = getErrorMessage(error) === 'Collection not found' ? 404 : 500;
       res.status(statusCode).json({
         status: 'error',
-        message: error.message || 'Failed to reorder games',
+        message: getErrorMessage(error) || 'Failed to reorder games',
       });
     }
   }
@@ -245,7 +251,7 @@ export class CollectionController {
         status: 'success',
         data: { collections },
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error fetching collections with game:', error);
       res.status(500).json({
         status: 'error',
