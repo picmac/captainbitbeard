@@ -2,12 +2,26 @@ import { Response } from 'express';
 import { AuthRequest } from './auth.controller';
 import { collectionService } from '../services/collection.service';
 
+interface CreateCollectionBody {
+  name: string;
+  description?: string;
+}
+
+interface UpdateCollectionBody {
+  name?: string;
+  description?: string;
+}
+
+interface ReorderGamesBody {
+  gameOrders: Array<{ gameId: string; order: number }>;
+}
+
 export class CollectionController {
   // Create a new collection
   async createCollection(req: AuthRequest, res: Response): Promise<void> {
     try {
       const userId = req.user!.id;
-      const { name, description } = req.body;
+      const { name, description } = req.body as CreateCollectionBody;
 
       if (!name || name.trim().length === 0) {
         res.status(400).json({
@@ -83,7 +97,7 @@ export class CollectionController {
     try {
       const userId = req.user!.id;
       const { collectionId } = req.params;
-      const { name, description } = req.body;
+      const { name, description } = req.body as UpdateCollectionBody;
 
       const updates: { name?: string; description?: string } = {};
       if (name !== undefined) updates.name = name.trim();
@@ -189,7 +203,7 @@ export class CollectionController {
     try {
       const userId = req.user!.id;
       const { collectionId } = req.params;
-      const { gameOrders } = req.body;
+      const { gameOrders } = req.body as ReorderGamesBody;
 
       if (!Array.isArray(gameOrders)) {
         res.status(400).json({

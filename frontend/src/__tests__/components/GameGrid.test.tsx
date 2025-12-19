@@ -7,6 +7,16 @@ import * as api from '../../services/api';
 // Mock the API
 vi.mock('../../services/api');
 
+// Mock the AuthContext
+vi.mock('../../context/AuthContext', () => ({
+  useAuth: () => ({
+    user: { id: '1', username: 'testuser', email: 'test@example.com', role: 'USER' },
+    login: vi.fn(),
+    logout: vi.fn(),
+    loading: false,
+  }),
+}));
+
 const mockGames = [
   {
     id: '1',
