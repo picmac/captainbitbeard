@@ -786,3 +786,127 @@ export const screenshotApi = {
     await api.delete(`/screenshots/${id}`);
   },
 };
+
+// Admin Types
+export interface SystemStats {
+  overview: {
+    totalGames: number;
+    totalUsers: number;
+    totalCollections: number;
+    totalSaveStates: number;
+    totalPlaySessions: number;
+    totalScreenshots: number;
+  };
+  usersByRole: Array<{ role: string; count: number }>;
+  gamesBySystem: Array<{ system: string; count: number }>;
+  recentUsers: Array<{
+    id: string;
+    username: string;
+    email: string;
+    role: string;
+    createdAt: string;
+  }>;
+  recentGames: Array<{
+    id: string;
+    title: string;
+    system: string;
+    coverUrl?: string | null;
+    createdAt: string;
+  }>;
+}
+
+export interface AdminUser {
+  id: string;
+  username: string;
+  email: string;
+  role: string;
+  createdAt: string;
+  updatedAt: string;
+  _count?: {
+    collections: number;
+    favorites: number;
+    playHistory: number;
+    saveStates: number;
+  };
+}
+
+export interface StorageStats {
+  totalGames: number;
+  gamesWithCover: number;
+  totalScreenshots: number;
+  totalSaveStates: number;
+}
+
+export interface ActivityStats {
+  newGames: number;
+  newUsers: number;
+  playSessions: number;
+  newCollections: number;
+}
+
+export interface DuplicateGroup {
+  id: string;
+  title: string;
+  system: string;
+  createdAt: string;
+}
+
+// Admin API
+export const adminApi = {
+  // Get system statistics
+  getSystemStats: async (): Promise<{ status: string; data: SystemStats }> => {
+    const response = await api.get('/admin/stats/system');
+    return response.data;
+  },
+
+  // Get storage statistics
+  getStorageStats: async (): Promise<{ status: string; data: StorageStats }> => {
+    const response = await api.get('/admin/stats/storage');
+    return response.data;
+  },
+
+  // Get activity statistics
+  getActivityStats: async (): Promise<{ status: string; data: ActivityStats }> => {
+    const response = await api.get('/admin/stats/activity');
+    return response.data;
+  },
+
+  // Get all users
+  getAllUsers: async (includeStats = false): Promise<{ status: string; data: { users: AdminUser[] } }> => {
+    const params = includeStats ? { includeStats: 'true' } : {};
+    const response = await api.get('/admin/users', { params });
+    return response.data;
+  },
+
+  // Update user role
+  updateUserRole: async (userId: string, role: string): Promise<{ status: string; data: { user: AdminUser } }> => {
+    const response = await api.patch(`/admin/users/${userId}/role`, { role });
+    return response.data;
+  },
+
+  // Delete user
+  deleteUser: async (userId: string): Promise<void> => {
+    await api.delete(`/admin/users/${userId}`);
+  },
+
+  // Bulk delete games
+  bulkDeleteGames: async (gameIds: string[]): Promise<{ status: string; data: { deletedCount: number } }> => {
+    const response = await api.post('/admin/games/bulk-delete', { gameIds });
+    return response.data;
+  },
+
+  // Bulk update games
+  bulkUpdateGames: async (
+    gameIds: string[],
+    updates: { system?: string; genre?: string; developer?: string; publisher?: string }
+  ): Promise<{ status: string; data: { updatedCount: number } }> => {
+    const response = await api.patch('/admin/games/bulk-update', { gameIds, updates });
+    return response.data;
+  },
+
+  // Find duplicate games
+  findDuplicates: async (): Promise<{ status: string; data: { duplicates: DuplicateGroup[][] } }> => {
+    const response = await api.get('/admin/games/duplicates');
+    return response.data;
+  },
+};
