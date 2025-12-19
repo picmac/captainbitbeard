@@ -9,6 +9,7 @@ import userprofileRoutes from './userprofile.routes';
 import saveStateRoutes from './savestate.routes';
 import screenshotRoutes from './screenshot.routes';
 import adminRoutes from './admin.routes';
+import savedSearchRoutes from './savedsearch.routes';
 
 const router = Router();
 
@@ -32,5 +33,6 @@ router.use('/profile', userprofileRoutes);
 router.use('/save-states', saveStateRoutes);
 router.use('/screenshots', screenshotRoutes);
 router.use('/admin', adminRoutes);
+router.use('/saved-searches', savedSearchRoutes);
 
 export default router;

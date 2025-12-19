@@ -171,20 +171,130 @@ export class GameService {
   }
 
   /**
-   * Search games by title
+   * Search games by title (simple search - kept for backwards compatibility)
    */
   async searchGames(query: string): Promise<Game[]> {
-    return prisma.game.findMany({
-      where: {
-        title: {
-          contains: query,
-          mode: 'insensitive',
+    return this.fullTextSearch({ query });
+  }
+
+  /**
+   * Full-text search across multiple fields with advanced filtering
+   */
+  async fullTextSearch(options: {
+    query?: string;
+    systems?: string[];
+    genres?: string[];
+    developers?: string[];
+    publishers?: string[];
+    yearFrom?: number;
+    yearTo?: number;
+    players?: number;
+    limit?: number;
+  }): Promise<Game[]> {
+    const {
+      query,
+      systems,
+      genres,
+      developers,
+      publishers,
+      yearFrom,
+      yearTo,
+      players,
+      limit = 50,
+    } = options;
+
+    // Build the where clause for full-text search
+    const where: any = {};
+
+    // Full-text search across multiple fields
+    if (query && query.trim()) {
+      where.OR = [
+        {
+          title: {
+            contains: query,
+            mode: 'insensitive',
+          },
         },
-      },
+        {
+          description: {
+            contains: query,
+            mode: 'insensitive',
+          },
+        },
+        {
+          developer: {
+            contains: query,
+            mode: 'insensitive',
+          },
+        },
+        {
+          publisher: {
+            contains: query,
+            mode: 'insensitive',
+          },
+        },
+        {
+          genre: {
+            contains: query,
+            mode: 'insensitive',
+          },
+        },
+      ];
+    }
+
+    // System filter
+    if (systems && systems.length > 0) {
+      where.system = {
+        in: systems,
+      };
+    }
+
+    // Genre filter
+    if (genres && genres.length > 0) {
+      where.genre = {
+        in: genres,
+      };
+    }
+
+    // Developer filter
+    if (developers && developers.length > 0) {
+      where.developer = {
+        in: developers,
+      };
+    }
+
+    // Publisher filter
+    if (publishers && publishers.length > 0) {
+      where.publisher = {
+        in: publishers,
+      };
+    }
+
+    // Year range filter
+    if (yearFrom || yearTo) {
+      where.releaseDate = {};
+      if (yearFrom) {
+        where.releaseDate.gte = new Date(`${yearFrom}-01-01`);
+      }
+      if (yearTo) {
+        where.releaseDate.lte = new Date(`${yearTo}-12-31`);
+      }
+    }
+
+    // Player count filter
+    if (players) {
+      where.players = players;
+    }
+
+    return prisma.game.findMany({
+      where,
       include: {
         metadata: true,
       },
-      take: 20,
+      take: limit,
+      orderBy: {
+        title: 'asc',
+      },
     });
   }
 

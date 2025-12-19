@@ -29,6 +29,7 @@ model User {
   playHistory      PlayHistory[]
   collections      Collection[]
   collectionShares CollectionShare[]
+  savedSearches    SavedSearch[]
 
   @@map("users")
 }
@@ -253,6 +254,31 @@ model CollectionGame {
   @@index([collectionId])
   @@index([gameId])
   @@map("collection_games")
+}
+
+// ============================================
+// Saved Searches
+// ============================================
+
+model SavedSearch {
+  id          String   @id @default(uuid())
+  userId      String   @map("user_id")
+  name        String
+  query       String?  // Full-text search query
+  systems     String[] // Array of systems
+  genres      String[] // Array of genres
+  developers  String[] // Array of developers
+  publishers  String[] // Array of publishers
+  yearFrom    Int?     @map("year_from")
+  yearTo      Int?     @map("year_to")
+  players     Int?
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("saved_searches")
 }
 
 // ============================================

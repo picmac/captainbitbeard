@@ -12,6 +12,7 @@ interface GameGridProps {
   sortBy?: string;
   viewMode?: 'grid' | 'list';
   advancedFilters?: FilterObject;
+  customGames?: Game[]; // For advanced search results
 }
 
 export function GameGrid({
@@ -20,7 +21,8 @@ export function GameGrid({
   favoritesOnly,
   sortBy = 'default',
   viewMode = 'grid',
-  advancedFilters
+  advancedFilters,
+  customGames
 }: GameGridProps) {
   const [games, setGames] = useState<Game[]>([]);
   const [loading, setLoading] = useState(true);
@@ -30,10 +32,20 @@ export function GameGrid({
   const [selectedGames, setSelectedGames] = useState<Game[]>([]);
 
   useEffect(() => {
-    loadGames();
-  }, [system, searchQuery, favoritesOnly, refreshKey]);
+    if (customGames) {
+      // Use provided custom games (e.g., from advanced search)
+      setGames(customGames);
+      setLoading(false);
+    } else {
+      loadGames();
+    }
+  }, [system, searchQuery, favoritesOnly, refreshKey, customGames]);
 
   const loadGames = async () => {
+    if (customGames) {
+      return; // Don't load if custom games are provided
+    }
+
     setLoading(true);
     setError('');
 

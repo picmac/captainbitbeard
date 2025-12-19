@@ -184,6 +184,45 @@ export class GameController {
   }
 
   /**
+   * Advanced full-text search with filters
+   * GET /api/games/advanced-search
+   */
+  async advancedSearch(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const {
+        q,
+        systems,
+        genres,
+        developers,
+        publishers,
+        yearFrom,
+        yearTo,
+        players,
+        limit,
+      } = req.query;
+
+      const games = await gameService.fullTextSearch({
+        query: q as string,
+        systems: systems ? (systems as string).split(',') : undefined,
+        genres: genres ? (genres as string).split(',') : undefined,
+        developers: developers ? (developers as string).split(',') : undefined,
+        publishers: publishers ? (publishers as string).split(',') : undefined,
+        yearFrom: yearFrom ? parseInt(yearFrom as string) : undefined,
+        yearTo: yearTo ? parseInt(yearTo as string) : undefined,
+        players: players ? parseInt(players as string) : undefined,
+        limit: limit ? parseInt(limit as string) : undefined,
+      });
+
+      res.json({
+        status: 'success',
+        data: { games, count: games.length },
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
    * Update game metadata
    * PATCH /api/games/:id
    */

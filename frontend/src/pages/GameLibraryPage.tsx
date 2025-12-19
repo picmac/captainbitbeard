@@ -5,6 +5,8 @@ import { SortControls } from '../components/SortControls';
 import { AdvancedFilters, type FilterObject } from '../components/AdvancedFilters';
 import { SearchBar } from '../components/SearchBar';
 import { ContinuePlaying } from '../components/ContinuePlaying';
+import { AdvancedSearchBar } from '../components/AdvancedSearchBar';
+import { type Game } from '../services/api';
 
 export function GameLibraryPage() {
   const [searchQuery, setSearchQuery] = useState('');
@@ -19,6 +21,11 @@ export function GameLibraryPage() {
     yearTo: undefined,
     players: undefined,
   });
+  const [advancedSearchResults, setAdvancedSearchResults] = useState<Game[] | null>(null);
+
+  const handleAdvancedSearchResults = (games: Game[]) => {
+    setAdvancedSearchResults(games);
+  };
 
   return (
     <div className="min-h-screen p-4">
@@ -71,21 +78,66 @@ export function GameLibraryPage() {
       {/* Game Grid */}
       <div className="mx-auto max-w-7xl">
         <ContinuePlaying />
-        <AdvancedFilters filters={advancedFilters} onFiltersChange={setAdvancedFilters} />
-        <SortControls
-          sortBy={sortBy}
-          onSortChange={setSortBy}
-          viewMode={viewMode}
-          onViewModeChange={setViewMode}
-        />
-        <GameGrid
-          system={selectedSystem || undefined}
-          searchQuery={searchQuery || undefined}
-          favoritesOnly={showFavoritesOnly}
-          sortBy={sortBy}
-          viewMode={viewMode}
-          advancedFilters={advancedFilters}
-        />
+
+        {/* Advanced Search Bar */}
+        <AdvancedSearchBar onResults={handleAdvancedSearchResults} />
+
+        {advancedSearchResults ? (
+          /* Show Advanced Search Results */
+          <>
+            <div className="mb-4 flex items-center justify-between">
+              <p className="text-pixel text-xs text-skull-white">
+                📦 {advancedSearchResults.length} result{advancedSearchResults.length !== 1 ? 's' : ''} from advanced search
+              </p>
+              <button
+                onClick={() => setAdvancedSearchResults(null)}
+                className="btn-retro text-xs px-3 py-1 bg-blood-red"
+              >
+                ✕ CLEAR SEARCH
+              </button>
+            </div>
+            <SortControls
+              sortBy={sortBy}
+              onSortChange={setSortBy}
+              viewMode={viewMode}
+              onViewModeChange={setViewMode}
+            />
+            <GameGrid
+              system={undefined}
+              searchQuery={undefined}
+              favoritesOnly={false}
+              sortBy={sortBy}
+              viewMode={viewMode}
+              advancedFilters={{
+                systems: [],
+                genre: undefined,
+                yearFrom: undefined,
+                yearTo: undefined,
+                players: undefined,
+              }}
+              customGames={advancedSearchResults}
+            />
+          </>
+        ) : (
+          /* Show Regular Library View */
+          <>
+            <AdvancedFilters filters={advancedFilters} onFiltersChange={setAdvancedFilters} />
+            <SortControls
+              sortBy={sortBy}
+              onSortChange={setSortBy}
+              viewMode={viewMode}
+              onViewModeChange={setViewMode}
+            />
+            <GameGrid
+              system={selectedSystem || undefined}
+              searchQuery={searchQuery || undefined}
+              favoritesOnly={showFavoritesOnly}
+              sortBy={sortBy}
+              viewMode={viewMode}
+              advancedFilters={advancedFilters}
+            />
+          </>
+        )}
       </div>
 
       {/* Navigation Links */}

@@ -910,3 +910,125 @@ export const adminApi = {
     return response.data;
   },
 };
+
+// Saved Search Types
+export interface SavedSearch {
+  id: string;
+  userId: string;
+  name: string;
+  query?: string;
+  systems: string[];
+  genres: string[];
+  developers: string[];
+  publishers: string[];
+  yearFrom?: number;
+  yearTo?: number;
+  players?: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CreateSavedSearchData {
+  name: string;
+  query?: string;
+  systems?: string[];
+  genres?: string[];
+  developers?: string[];
+  publishers?: string[];
+  yearFrom?: number;
+  yearTo?: number;
+  players?: number;
+}
+
+export interface UpdateSavedSearchData {
+  name?: string;
+  query?: string;
+  systems?: string[];
+  genres?: string[];
+  developers?: string[];
+  publishers?: string[];
+  yearFrom?: number;
+  yearTo?: number;
+  players?: number;
+}
+
+// Saved Search API
+export const savedSearchApi = {
+  // Create a new saved search
+  createSavedSearch: async (data: CreateSavedSearchData): Promise<{ status: string; data: { savedSearch: SavedSearch } }> => {
+    const response = await api.post('/saved-searches', data);
+    return response.data;
+  },
+
+  // Get all saved searches for current user
+  getUserSavedSearches: async (): Promise<{ status: string; data: { savedSearches: SavedSearch[] } }> => {
+    const response = await api.get('/saved-searches');
+    return response.data;
+  },
+
+  // Get a saved search by ID
+  getSavedSearchById: async (id: string): Promise<{ status: string; data: { savedSearch: SavedSearch } }> => {
+    const response = await api.get(`/saved-searches/${id}`);
+    return response.data;
+  },
+
+  // Update a saved search
+  updateSavedSearch: async (id: string, data: UpdateSavedSearchData): Promise<{ status: string; data: { savedSearch: SavedSearch } }> => {
+    const response = await api.patch(`/saved-searches/${id}`, data);
+    return response.data;
+  },
+
+  // Delete a saved search
+  deleteSavedSearch: async (id: string): Promise<void> => {
+    await api.delete(`/saved-searches/${id}`);
+  },
+
+  // Execute a saved search
+  executeSavedSearch: async (search: SavedSearch): Promise<{ status: string; data: { games: Game[]; count: number } }> => {
+    const params = new URLSearchParams();
+
+    if (search.query) params.append('q', search.query);
+    if (search.systems.length > 0) params.append('systems', search.systems.join(','));
+    if (search.genres.length > 0) params.append('genres', search.genres.join(','));
+    if (search.developers.length > 0) params.append('developers', search.developers.join(','));
+    if (search.publishers.length > 0) params.append('publishers', search.publishers.join(','));
+    if (search.yearFrom) params.append('yearFrom', search.yearFrom.toString());
+    if (search.yearTo) params.append('yearTo', search.yearTo.toString());
+    if (search.players) params.append('players', search.players.toString());
+
+    const response = await api.get(`/games/advanced-search?${params.toString()}`);
+    return response.data;
+  },
+};
+
+// Advanced Search API
+export interface AdvancedSearchParams {
+  query?: string;
+  systems?: string[];
+  genres?: string[];
+  developers?: string[];
+  publishers?: string[];
+  yearFrom?: number;
+  yearTo?: number;
+  players?: number;
+  limit?: number;
+}
+
+export const advancedSearchApi = {
+  search: async (params: AdvancedSearchParams): Promise<{ status: string; data: { games: Game[]; count: number } }> => {
+    const urlParams = new URLSearchParams();
+
+    if (params.query) urlParams.append('q', params.query);
+    if (params.systems && params.systems.length > 0) urlParams.append('systems', params.systems.join(','));
+    if (params.genres && params.genres.length > 0) urlParams.append('genres', params.genres.join(','));
+    if (params.developers && params.developers.length > 0) urlParams.append('developers', params.developers.join(','));
+    if (params.publishers && params.publishers.length > 0) urlParams.append('publishers', params.publishers.join(','));
+    if (params.yearFrom) urlParams.append('yearFrom', params.yearFrom.toString());
+    if (params.yearTo) urlParams.append('yearTo', params.yearTo.toString());
+    if (params.players) urlParams.append('players', params.players.toString());
+    if (params.limit) urlParams.append('limit', params.limit.toString());
+
+    const response = await api.get(`/games/advanced-search?${urlParams.toString()}`);
+    return response.data;
+  },
+};

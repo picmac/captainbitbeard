@@ -49,6 +49,7 @@ const upload = multer({
 router.get('/', gameController.getAllGames.bind(gameController));
 router.get('/systems', gameController.getSystems.bind(gameController));
 router.get('/search', gameController.searchGames.bind(gameController));
+router.get('/advanced-search', gameController.advancedSearch.bind(gameController));
 router.get('/:id', gameController.getGameById.bind(gameController));
 router.get('/:id/play', gameController.getGameForPlay.bind(gameController));
 router.get('/:id/rom', gameController.streamRom.bind(gameController));
