@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import multer from 'multer';
 import { gameController } from '../controllers/game.controller';
+import { authenticate, requireAdmin } from '../middleware/auth.middleware';
 
 const router = Router();
 
@@ -53,7 +54,9 @@ router.get('/:id/play', gameController.getGameForPlay.bind(gameController));
 router.get('/:id/rom', gameController.streamRom.bind(gameController));
 router.get('/system/:system', gameController.getGamesBySystem.bind(gameController));
 
-// Admin routes (TODO: Add authentication middleware)
+// Admin routes - require authentication and admin role
+router.use(authenticate);
+router.use(requireAdmin);
 router.post('/upload', upload.single('rom'), gameController.uploadRom.bind(gameController));
 router.post(
   '/bulk-upload',
