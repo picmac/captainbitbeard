@@ -1,9 +1,10 @@
-import { Request, Response } from 'express';
+import { Response } from 'express';
+import { AuthRequest } from './auth.controller';
 import { collectionService } from '../services/collection.service';
 
 export class CollectionController {
   // Create a new collection
-  async createCollection(req: Request, res: Response) {
+  async createCollection(req: AuthRequest, res: Response): Promise<void> {
     try {
       const userId = req.user!.id;
       const { name, description } = req.body;
@@ -35,7 +36,7 @@ export class CollectionController {
   }
 
   // Get all collections for the current user
-  async getUserCollections(req: Request, res: Response) {
+  async getUserCollections(req: AuthRequest, res: Response): Promise<void> {
     try {
       const userId = req.user!.id;
 
@@ -55,7 +56,7 @@ export class CollectionController {
   }
 
   // Get a single collection by ID
-  async getCollectionById(req: Request, res: Response) {
+  async getCollectionById(req: AuthRequest, res: Response): Promise<void> {
     try {
       const userId = req.user!.id;
       const { collectionId } = req.params;
@@ -77,7 +78,7 @@ export class CollectionController {
   }
 
   // Update a collection
-  async updateCollection(req: Request, res: Response) {
+  async updateCollection(req: AuthRequest, res: Response): Promise<void> {
     try {
       const userId = req.user!.id;
       const { collectionId } = req.params;
@@ -108,7 +109,7 @@ export class CollectionController {
   }
 
   // Delete a collection
-  async deleteCollection(req: Request, res: Response) {
+  async deleteCollection(req: AuthRequest, res: Response): Promise<void> {
     try {
       const userId = req.user!.id;
       const { collectionId } = req.params;
@@ -130,7 +131,7 @@ export class CollectionController {
   }
 
   // Add a game to a collection
-  async addGameToCollection(req: Request, res: Response) {
+  async addGameToCollection(req: AuthRequest, res: Response): Promise<void> {
     try {
       const userId = req.user!.id;
       const { collectionId, gameId } = req.params;
@@ -161,7 +162,7 @@ export class CollectionController {
   }
 
   // Remove a game from a collection
-  async removeGameFromCollection(req: Request, res: Response) {
+  async removeGameFromCollection(req: AuthRequest, res: Response): Promise<void> {
     try {
       const userId = req.user!.id;
       const { collectionId, gameId } = req.params;
@@ -183,7 +184,7 @@ export class CollectionController {
   }
 
   // Reorder games in a collection
-  async reorderGames(req: Request, res: Response) {
+  async reorderGames(req: AuthRequest, res: Response): Promise<void> {
     try {
       const userId = req.user!.id;
       const { collectionId } = req.params;
@@ -217,7 +218,7 @@ export class CollectionController {
   }
 
   // Get collections that contain a specific game
-  async getCollectionsWithGame(req: Request, res: Response) {
+  async getCollectionsWithGame(req: AuthRequest, res: Response): Promise<void> {
     try {
       const userId = req.user!.id;
       const { gameId } = req.params;

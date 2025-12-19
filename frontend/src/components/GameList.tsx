@@ -1,4 +1,3 @@
-import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { gameApi, type Game } from '../services/api';
 import { FavoriteButton } from './FavoriteButton';
