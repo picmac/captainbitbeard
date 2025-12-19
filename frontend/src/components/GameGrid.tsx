@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { gameApi, favoriteApi, type Game } from '../services/api';
 import { GameCard } from './GameCard';
 import { GameList } from './GameList';
+import { QuickActionsMenu } from './QuickActionsMenu';
 import { type FilterObject } from './AdvancedFilters';
 
 interface GameGridProps {
@@ -25,6 +26,8 @@ export function GameGrid({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [refreshKey, setRefreshKey] = useState(0);
+  const [selectionMode, setSelectionMode] = useState(false);
+  const [selectedGames, setSelectedGames] = useState<Game[]>([]);
 
   useEffect(() => {
     loadGames();
@@ -58,6 +61,30 @@ export function GameGrid({
 
   const handleRefresh = () => {
     setRefreshKey((prev) => prev + 1);
+  };
+
+  const handleToggleSelection = (game: Game) => {
+    setSelectedGames((prev) => {
+      const isSelected = prev.some((g) => g.id === game.id);
+      if (isSelected) {
+        return prev.filter((g) => g.id !== game.id);
+      } else {
+        return [...prev, game];
+      }
+    });
+  };
+
+  const handleClearSelection = () => {
+    setSelectedGames([]);
+    setSelectionMode(false);
+  };
+
+  const handleSelectAll = () => {
+    if (selectedGames.length === sortedGames.length) {
+      setSelectedGames([]);
+    } else {
+      setSelectedGames(sortedGames);
+    }
   };
 
   // Filter games based on advanced filters
@@ -154,11 +181,34 @@ export function GameGrid({
 
   return (
     <div>
-      {/* Stats Bar */}
-      <div className="mb-4 text-center">
+      {/* Stats & Actions Bar */}
+      <div className="mb-4 flex items-center justify-between flex-wrap gap-2">
         <p className="text-pixel text-xs text-skull-white">
           📦 {sortedGames.length} game{sortedGames.length !== 1 ? 's' : ''} found
+          {selectedGames.length > 0 && ` • ${selectedGames.length} selected`}
         </p>
+
+        <div className="flex gap-2">
+          {selectionMode && (
+            <button
+              onClick={handleSelectAll}
+              className="btn-retro text-xs px-3 py-1 bg-treasure-green"
+            >
+              {selectedGames.length === sortedGames.length ? '☐ Deselect All' : '☑ Select All'}
+            </button>
+          )}
+          <button
+            onClick={() => {
+              setSelectionMode(!selectionMode);
+              setSelectedGames([]);
+            }}
+            className={`btn-retro text-xs px-3 py-1 ${
+              selectionMode ? 'bg-blood-red' : 'bg-pirate-gold'
+            }`}
+          >
+            {selectionMode ? '✕ Exit Selection' : '☑ Select Mode'}
+          </button>
+        </div>
       </div>
 
       {/* Game Grid or List */}
@@ -167,10 +217,24 @@ export function GameGrid({
       ) : (
         <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6">
           {sortedGames.map((game) => (
-            <GameCard key={game.id} game={game} onMetadataFetched={handleRefresh} />
+            <GameCard
+              key={game.id}
+              game={game}
+              onMetadataFetched={handleRefresh}
+              selectable={selectionMode}
+              selected={selectedGames.some((g) => g.id === game.id)}
+              onToggleSelect={handleToggleSelection}
+            />
           ))}
         </div>
       )}
+
+      {/* Quick Actions Menu */}
+      <QuickActionsMenu
+        selectedGames={selectedGames}
+        onClearSelection={handleClearSelection}
+        onRefresh={handleRefresh}
+      />
     </div>
   );
 }

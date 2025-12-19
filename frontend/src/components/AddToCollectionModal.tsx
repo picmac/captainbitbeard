@@ -3,9 +3,10 @@ import { collectionApi, type Collection } from '../services/api';
 
 interface AddToCollectionModalProps {
   gameId: string;
-  gameName: string;
+  gameName?: string;
   onClose: () => void;
   onSuccess?: () => void;
+  bulkGameIds?: string[];
 }
 
 export function AddToCollectionModal({
@@ -13,7 +14,9 @@ export function AddToCollectionModal({
   gameName,
   onClose,
   onSuccess,
+  bulkGameIds,
 }: AddToCollectionModalProps) {
+  const isBulkOperation = bulkGameIds && bulkGameIds.length > 1;
   const [collections, setCollections] = useState<Collection[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -39,7 +42,23 @@ export function AddToCollectionModal({
 
   const handleAddToCollection = async (collectionId: string) => {
     try {
-      await collectionApi.addGameToCollection(collectionId, gameId);
+      if (isBulkOperation && bulkGameIds) {
+        // Add multiple games
+        let successCount = 0;
+        let errorCount = 0;
+        for (const gId of bulkGameIds) {
+          try {
+            await collectionApi.addGameToCollection(collectionId, gId);
+            successCount++;
+          } catch {
+            errorCount++;
+          }
+        }
+        alert(`✅ Added ${successCount} games. ${errorCount > 0 ? `❌ ${errorCount} failed.` : ''}`);
+      } else {
+        // Add single game
+        await collectionApi.addGameToCollection(collectionId, gameId);
+      }
       if (onSuccess) onSuccess();
       onClose();
     } catch (err: any) {
@@ -57,8 +76,18 @@ export function AddToCollectionModal({
       const response = await collectionApi.createCollection(newCollectionName.trim());
       const newCollection = response.data.collection;
 
-      // Add the game to the new collection
-      await collectionApi.addGameToCollection(newCollection.id, gameId);
+      // Add the game(s) to the new collection
+      if (isBulkOperation && bulkGameIds) {
+        for (const gId of bulkGameIds) {
+          try {
+            await collectionApi.addGameToCollection(newCollection.id, gId);
+          } catch {
+            // Continue on error
+          }
+        }
+      } else {
+        await collectionApi.addGameToCollection(newCollection.id, gameId);
+      }
 
       if (onSuccess) onSuccess();
       onClose();
@@ -84,7 +113,7 @@ export function AddToCollectionModal({
             📚 ADD TO COLLECTION
           </h2>
           <p className="text-pixel text-[8px] text-wood-brown">
-            {gameName}
+            {isBulkOperation ? `${bulkGameIds?.length} games selected` : gameName}
           </p>
         </div>
 

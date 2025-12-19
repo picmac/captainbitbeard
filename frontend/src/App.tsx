@@ -10,8 +10,13 @@ import { CollectionDetailPage } from './pages/CollectionDetailPage';
 import { UserProfilePage } from './pages/UserProfilePage';
 import { SharedCollectionPage } from './pages/SharedCollectionPage';
 import { SaveStatesPage } from './pages/SaveStatesPage';
+import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts';
+import { KeyboardShortcutsHelp } from './components/KeyboardShortcutsHelp';
 
 function App() {
+  // Enable global keyboard shortcuts
+  useKeyboardShortcuts();
+
   return (
     <div className="min-h-screen bg-ocean-dark">
       <Routes>
@@ -28,6 +33,9 @@ function App() {
         <Route path="/save-states" element={<SaveStatesPage />} />
         <Route path="/admin" element={<AdminPage />} />
       </Routes>
+
+      {/* Global Keyboard Shortcuts Help */}
+      <KeyboardShortcutsHelp />
     </div>
   );
 }

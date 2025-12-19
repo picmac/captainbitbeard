@@ -6,15 +6,29 @@ import { FavoriteButton } from './FavoriteButton';
 interface GameCardProps {
   game: Game;
   onMetadataFetched?: () => void;
+  selectable?: boolean;
+  selected?: boolean;
+  onToggleSelect?: (game: Game) => void;
 }
 
-export function GameCard({ game, onMetadataFetched }: GameCardProps) {
+export function GameCard({
+  game,
+  onMetadataFetched,
+  selectable = false,
+  selected = false,
+  onToggleSelect,
+}: GameCardProps) {
   const [scraping, setScraping] = useState(false);
   const [showActions, setShowActions] = useState(false);
   const navigate = useNavigate();
 
   const handleViewDetails = () => {
-    navigate(`/game/${game.id}`);
+    // If in selection mode, toggle selection instead of navigating
+    if (selectable && onToggleSelect) {
+      onToggleSelect(game);
+    } else {
+      navigate(`/game/${game.id}`);
+    }
   };
 
   const handleScrapeMetadata = async (e: React.MouseEvent) => {
@@ -58,11 +72,26 @@ export function GameCard({ game, onMetadataFetched }: GameCardProps) {
 
   return (
     <div
-      className="group relative cursor-pointer transition-transform hover:scale-105"
+      className={`group relative cursor-pointer transition-transform hover:scale-105 ${
+        selected ? 'ring-4 ring-pirate-gold' : ''
+      }`}
       onClick={handleViewDetails}
       onMouseEnter={() => setShowActions(true)}
       onMouseLeave={() => setShowActions(false)}
     >
+      {/* Selection Checkbox */}
+      {selectable && (
+        <div className="absolute top-2 left-2 z-20">
+          <input
+            type="checkbox"
+            checked={selected}
+            onChange={() => onToggleSelect?.(game)}
+            onClick={(e) => e.stopPropagation()}
+            className="w-5 h-5 cursor-pointer"
+          />
+        </div>
+      )}
+
       {/* Game Card */}
       <div className="border-4 border-wood-brown bg-sand-beige">
         {/* Cover Image */}
@@ -116,9 +145,11 @@ export function GameCard({ game, onMetadataFetched }: GameCardProps) {
       </div>
 
       {/* Favorite Button (top-left, always visible) */}
-      <div className="absolute top-2 left-2 z-10">
-        <FavoriteButton gameId={game.id} onToggle={onMetadataFetched} />
-      </div>
+      {!selectable && (
+        <div className="absolute top-2 left-2 z-10">
+          <FavoriteButton gameId={game.id} onToggle={onMetadataFetched} />
+        </div>
+      )}
 
       {/* Action Buttons (visible on hover) */}
       {showActions && (
