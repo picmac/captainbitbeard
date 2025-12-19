@@ -1,9 +1,11 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
-import { gameApi, type Game } from '../services/api';
+import { gameApi, screenshotApi, type Game, type Screenshot } from '../services/api';
 import { GameMetadataDisplay } from '../components/GameMetadataDisplay';
 import { FavoriteButton } from '../components/FavoriteButton';
 import { AddToCollectionModal } from '../components/AddToCollectionModal';
+import { ImageGallery } from '../components/ImageGallery';
+import { ScreenshotUploadModal } from '../components/ScreenshotUploadModal';
 import { useAuth } from '../context/AuthContext';
 
 export function GameDetailsPage() {
@@ -14,6 +16,8 @@ export function GameDetailsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [showCollectionModal, setShowCollectionModal] = useState(false);
+  const [screenshots, setScreenshots] = useState<Screenshot[]>([]);
+  const [showUploadModal, setShowUploadModal] = useState(false);
 
   useEffect(() => {
     if (!gameId) {
@@ -32,10 +36,22 @@ export function GameDetailsPage() {
     try {
       const response = await gameApi.getGame(gameId);
       setGame(response.data.game);
+      await loadScreenshots();
     } catch (err: any) {
       setError(err.response?.data?.message || 'Failed to load game');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const loadScreenshots = async () => {
+    if (!gameId) return;
+
+    try {
+      const response = await screenshotApi.getScreenshots(gameId);
+      setScreenshots(response.data.screenshots);
+    } catch (err) {
+      console.error('Failed to load screenshots:', err);
     }
   };
 
@@ -173,12 +189,57 @@ export function GameDetailsPage() {
                   🎨 FETCH METADATA
                 </button>
               )}
+              <button
+                onClick={() => setShowUploadModal(true)}
+                className="btn-retro text-sm bg-pirate-gold"
+              >
+                📸 ADD SCREENSHOTS
+              </button>
               <button onClick={handleDelete} className="btn-retro text-sm bg-blood-red">
                 🗑️ DELETE GAME
               </button>
             </>
           )}
         </div>
+
+        {/* Image Gallery */}
+        {(screenshots.length > 0 ||
+          game.coverUrl ||
+          game.boxArtUrl ||
+          game.backgroundUrl ||
+          game.logoUrl) && (
+          <div className="mt-8">
+            <div className="border-4 border-wood-brown bg-sand-beige p-6">
+              <h2 className="text-pixel text-lg text-ocean-dark mb-4">📸 MEDIA GALLERY</h2>
+              <ImageGallery
+                screenshots={screenshots}
+                coverUrl={game.coverUrl}
+                boxArtUrl={game.boxArtUrl}
+                backgroundUrl={game.backgroundUrl}
+                logoUrl={game.logoUrl}
+              />
+            </div>
+          </div>
+        )}
+
+        {/* Video Section */}
+        {game.videoUrl && (
+          <div className="mt-8">
+            <div className="border-4 border-wood-brown bg-sand-beige p-6">
+              <h2 className="text-pixel text-lg text-ocean-dark mb-4">🎬 VIDEO</h2>
+              <div className="aspect-video bg-black">
+                <video
+                  src={game.videoUrl}
+                  controls
+                  className="w-full h-full"
+                  poster={game.coverUrl || undefined}
+                >
+                  Your browser does not support the video tag.
+                </video>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Add to Collection Modal */}
@@ -190,6 +251,15 @@ export function GameDetailsPage() {
           onSuccess={() => {
             alert(`✅ ${game.title} added to collection!`);
           }}
+        />
+      )}
+
+      {/* Screenshot Upload Modal */}
+      {showUploadModal && game && (
+        <ScreenshotUploadModal
+          gameId={game.id}
+          onClose={() => setShowUploadModal(false)}
+          onSuccess={loadScreenshots}
         />
       )}
     </div>

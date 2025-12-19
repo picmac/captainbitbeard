@@ -16,6 +16,10 @@ export interface Game {
   system: string;
   romPath: string;
   coverUrl?: string | null;
+  boxArtUrl?: string | null;
+  backgroundUrl?: string | null;
+  logoUrl?: string | null;
+  videoUrl?: string | null;
   description?: string;
   releaseDate?: string;
   developer?: string;
@@ -708,5 +712,77 @@ export const saveStateApi = {
   // Delete save state
   deleteSaveState: async (id: string): Promise<void> => {
     await api.delete(`/save-states/${id}`);
+  },
+};
+
+// Screenshot Types
+export interface Screenshot {
+  id: string;
+  gameId: string;
+  url: string;
+  type: string;
+  order: number;
+  createdAt: string;
+}
+
+export interface ScreenshotResponse {
+  status: string;
+  data: {
+    screenshot: Screenshot;
+  };
+}
+
+export interface ScreenshotsResponse {
+  status: string;
+  data: {
+    screenshots: Screenshot[];
+  };
+}
+
+export interface AddScreenshotRequest {
+  url?: string;
+  imageData?: string; // Base64 encoded image
+  type?: string;
+  order?: number;
+}
+
+// Screenshot API
+export const screenshotApi = {
+  // Get screenshots for a game
+  getScreenshots: async (gameId: string, type?: string): Promise<ScreenshotsResponse> => {
+    const params = type ? { type } : {};
+    const response = await api.get(`/screenshots/game/${gameId}`, { params });
+    return response.data;
+  },
+
+  // Add screenshot (admin)
+  addScreenshot: async (
+    gameId: string,
+    data: AddScreenshotRequest
+  ): Promise<ScreenshotResponse> => {
+    const response = await api.post(`/screenshots/game/${gameId}`, data);
+    return response.data;
+  },
+
+  // Bulk add screenshots (admin)
+  bulkAddScreenshots: async (
+    gameId: string,
+    screenshots: AddScreenshotRequest[]
+  ): Promise<{ status: string; data: { count: number } }> => {
+    const response = await api.post(`/screenshots/game/${gameId}/bulk`, { screenshots });
+    return response.data;
+  },
+
+  // Reorder screenshots (admin)
+  reorderScreenshots: async (
+    updates: Array<{ id: string; order: number }>
+  ): Promise<ScreenshotsResponse> => {
+    const response = await api.put('/screenshots/reorder', { updates });
+    return response.data;
+  },
+
+  // Delete screenshot (admin)
+  deleteScreenshot: async (id: string): Promise<void> => {
+    await api.delete(`/screenshots/${id}`);
   },
 };
