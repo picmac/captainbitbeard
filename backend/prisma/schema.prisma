@@ -23,11 +23,12 @@ model User {
   createdAt     DateTime @default(now()) @map("created_at")
   updatedAt     DateTime @updatedAt @map("updated_at")
 
-  profile       UserProfile?
-  saveStates    SaveState[]
-  favorites     Favorite[]
-  playHistory   PlayHistory[]
-  collections   Collection[]
+  profile          UserProfile?
+  saveStates       SaveState[]
+  favorites        Favorite[]
+  playHistory      PlayHistory[]
+  collections      Collection[]
+  collectionShares CollectionShare[]
 
   @@map("users")
 }
@@ -190,18 +191,49 @@ model PlayHistory {
 }
 
 model Collection {
-  id          String   @id @default(uuid())
-  userId      String   @map("user_id")
+  id          String               @id @default(uuid())
+  userId      String               @map("user_id")
   name        String
   description String?
-  createdAt   DateTime @default(now()) @map("created_at")
-  updatedAt   DateTime @updatedAt @map("updated_at")
+  visibility  CollectionVisibility @default(PRIVATE)
+  shareLink   String?              @unique @map("share_link") // UUID for unlisted sharing
+  createdAt   DateTime             @default(now()) @map("created_at")
+  updatedAt   DateTime             @updatedAt @map("updated_at")
 
-  user  User             @relation(fields: [userId], references: [id], onDelete: Cascade)
-  games CollectionGame[]
+  user   User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  games  CollectionGame[]
+  shares CollectionShare[]
 
   @@index([userId])
+  @@index([visibility])
   @@map("collections")
+}
+
+enum CollectionVisibility {
+  PRIVATE  // Only owner can see
+  PUBLIC   // Everyone can see
+  UNLISTED // Accessible via share link
+}
+
+model CollectionShare {
+  id           String          @id @default(uuid())
+  collectionId String          @map("collection_id")
+  userId       String?         @map("user_id") // null = anonymous via link
+  permission   SharePermission @default(VIEW)
+  createdAt    DateTime        @default(now()) @map("created_at")
+
+  collection Collection @relation(fields: [collectionId], references: [id], onDelete: Cascade)
+  user       User?      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([collectionId, userId])
+  @@index([collectionId])
+  @@index([userId])
+  @@map("collection_shares")
+}
+
+enum SharePermission {
+  VIEW // Can view collection
+  EDIT // Can add/remove games
 }
 
 model CollectionGame {

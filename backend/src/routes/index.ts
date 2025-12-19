@@ -4,6 +4,8 @@ import authRoutes from './auth.routes';
 import favoriteRoutes from './favorite.routes';
 import playHistoryRoutes from './playhistory.routes';
 import collectionRoutes from './collection.routes';
+import collectionShareRoutes from './collectionshare.routes';
+import userprofileRoutes from './userprofile.routes';
 
 const router = Router();
 
@@ -22,5 +24,7 @@ router.use('/games', gameRoutes);
 router.use('/favorites', favoriteRoutes);
 router.use('/play-history', playHistoryRoutes);
 router.use('/collections', collectionRoutes);
+router.use('/collection-sharing', collectionShareRoutes);
+router.use('/profile', userprofileRoutes);
 
 export default router;
