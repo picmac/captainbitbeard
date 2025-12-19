@@ -6,6 +6,7 @@ import { FavoriteButton } from '../components/FavoriteButton';
 import { AddToCollectionModal } from '../components/AddToCollectionModal';
 import { ImageGallery } from '../components/ImageGallery';
 import { ScreenshotUploadModal } from '../components/ScreenshotUploadModal';
+import { GameVersionManager } from '../components/GameVersionManager';
 import { useAuth } from '../context/AuthContext';
 
 export function GameDetailsPage() {
@@ -238,6 +239,13 @@ export function GameDetailsPage() {
                 </video>
               </div>
             </div>
+          </div>
+        )}
+
+        {/* Game Version Manager */}
+        {game && (
+          <div className="mt-8">
+            <GameVersionManager gameId={game.id} isAdmin={user?.role === 'ADMIN'} />
           </div>
         )}
       </div>

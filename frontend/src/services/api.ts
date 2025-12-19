@@ -1032,3 +1032,143 @@ export const advancedSearchApi = {
     return response.data;
   },
 };
+
+// Game Version Types
+export interface GameVersion {
+  id: string;
+  gameId: string;
+  versionName: string;
+  region: string;
+  revision?: string;
+  romPath: string;
+  md5Hash: string;
+  fileSize: string;
+  releaseDate?: string;
+  changes?: string;
+  isPreferred: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+// Game Version API
+export const gameVersionApi = {
+  // Get all versions for a game
+  getGameVersions: async (gameId: string): Promise<{ status: string; data: { versions: GameVersion[] } }> => {
+    const response = await api.get(`/game-versions/${gameId}`);
+    return response.data;
+  },
+
+  // Create a new game version
+  createGameVersion: async (
+    gameId: string,
+    formData: FormData
+  ): Promise<{ status: string; data: { version: GameVersion } }> => {
+    const response = await api.post(`/game-versions/${gameId}`, formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+    return response.data;
+  },
+
+  // Set preferred version
+  setPreferredVersion: async (
+    gameId: string,
+    versionId: string
+  ): Promise<{ status: string; data: { version: GameVersion } }> => {
+    const response = await api.patch(`/game-versions/${gameId}/${versionId}/preferred`);
+    return response.data;
+  },
+
+  // Delete a game version
+  deleteGameVersion: async (gameId: string, versionId: string): Promise<void> => {
+    await api.delete(`/game-versions/${gameId}/${versionId}`);
+  },
+
+  // Get download URL for a version's ROM
+  getVersionDownloadUrl: async (gameId: string, versionId: string): Promise<{ status: string; data: { url: string } }> => {
+    const response = await api.get(`/game-versions/${gameId}/${versionId}/download`);
+    return response.data;
+  },
+};
+
+// BIOS File Types
+export interface BiosFile {
+  id: string;
+  system: string;
+  fileName: string;
+  filePath: string;
+  md5Hash: string;
+  fileSize: string;
+  description?: string;
+  region?: string;
+  version?: string;
+  required: boolean;
+  verified: boolean;
+  uploadedBy?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+// BIOS API
+export const biosApi = {
+  // Get all BIOS files
+  getAllBiosFiles: async (): Promise<{ status: string; data: { biosFiles: BiosFile[] } }> => {
+    const response = await api.get('/bios');
+    return response.data;
+  },
+
+  // Get BIOS files by system
+  getBiosFilesBySystem: async (system: string): Promise<{ status: string; data: { biosFiles: BiosFile[] } }> => {
+    const response = await api.get(`/bios/system/${system}`);
+    return response.data;
+  },
+
+  // Get systems requiring BIOS
+  getSystemsRequiringBios: async (): Promise<{ status: string; data: { systems: string[] } }> => {
+    const response = await api.get('/bios/systems/requiring-bios');
+    return response.data;
+  },
+
+  // Upload BIOS file
+  uploadBiosFile: async (formData: FormData): Promise<{ status: string; data: { biosFile: BiosFile } }> => {
+    const response = await api.post('/bios/upload', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+    return response.data;
+  },
+
+  // Update BIOS file metadata
+  updateBiosFile: async (
+    id: string,
+    data: {
+      description?: string;
+      region?: string;
+      version?: string;
+      required?: boolean;
+      verified?: boolean;
+    }
+  ): Promise<{ status: string; data: { biosFile: BiosFile } }> => {
+    const response = await api.patch(`/bios/${id}`, data);
+    return response.data;
+  },
+
+  // Delete BIOS file
+  deleteBiosFile: async (id: string): Promise<void> => {
+    await api.delete(`/bios/${id}`);
+  },
+
+  // Get download URL for BIOS file
+  getBiosDownloadUrl: async (id: string): Promise<{ status: string; data: { url: string } }> => {
+    const response = await api.get(`/bios/${id}/download`);
+    return response.data;
+  },
+
+  // Verify BIOS MD5 hash
+  verifyBiosMd5: async (id: string, expectedMd5: string): Promise<{ status: string; data: { isValid: boolean } }> => {
+    const response = await api.post(`/bios/${id}/verify`, { expectedMd5 });
+    return response.data;
+  },
+};

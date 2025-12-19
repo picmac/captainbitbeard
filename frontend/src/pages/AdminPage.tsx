@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { RomUpload } from '../components/RomUpload';
 import { BulkRomUpload } from '../components/BulkRomUpload';
+import { BiosManager } from '../components/BiosManager';
 import {
   adminApi,
   type SystemStats,
@@ -11,7 +12,7 @@ import {
 } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 
-type TabType = 'dashboard' | 'upload' | 'users' | 'bulk' | 'duplicates';
+type TabType = 'dashboard' | 'upload' | 'users' | 'bulk' | 'duplicates' | 'bios';
 
 export function AdminPage() {
   const { user } = useAuth();
@@ -173,6 +174,14 @@ export function AdminPage() {
           }`}
         >
           🔍 DUPLICATES
+        </button>
+        <button
+          onClick={() => setActiveTab('bios')}
+          className={`btn-retro text-xs ${
+            activeTab === 'bios' ? 'bg-pirate-gold' : 'opacity-50'
+          }`}
+        >
+          💾 BIOS FILES
         </button>
       </div>
 
@@ -462,6 +471,9 @@ export function AdminPage() {
             )}
           </div>
         )}
+
+        {/* BIOS Tab */}
+        {activeTab === 'bios' && <BiosManager />}
       </div>
 
       {/* Back to Library */}
