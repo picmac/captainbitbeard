@@ -24,7 +24,7 @@ export function FavoriteButton({ gameId, onToggle }: FavoriteButtonProps) {
     try {
       const response = await favoriteApi.getFavoriteStatus(gameId);
       setIsFavorited(response.data.isFavorited);
-    } catch (err: any) {
+    } catch {
       // Silently fail - not favorited
       setIsFavorited(false);
     }

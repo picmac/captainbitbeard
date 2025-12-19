@@ -28,7 +28,7 @@ export function CollectionsPage() {
     try {
       const response = await collectionApi.getUserCollections();
       setCollections(response.data.collections);
-    } catch (err: any) {
+    } catch {
       setError('Failed to load collections');
     } finally {
       setLoading(false);

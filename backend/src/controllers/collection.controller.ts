@@ -10,10 +10,11 @@ export class CollectionController {
       const { name, description } = req.body;
 
       if (!name || name.trim().length === 0) {
-        return res.status(400).json({
+        res.status(400).json({
           status: 'error',
           message: 'Collection name is required',
         });
+        return;
       }
 
       const collection = await collectionService.createCollection(
@@ -191,10 +192,11 @@ export class CollectionController {
       const { gameOrders } = req.body;
 
       if (!Array.isArray(gameOrders)) {
-        return res.status(400).json({
+        res.status(400).json({
           status: 'error',
           message: 'gameOrders must be an array',
         });
+        return;
       }
 
       const collection = await collectionService.reorderGames(

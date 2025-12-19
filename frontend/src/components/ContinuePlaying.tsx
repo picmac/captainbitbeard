@@ -22,7 +22,7 @@ export function ContinuePlaying() {
     try {
       const response = await playHistoryApi.getRecentGames(10);
       setRecentGames(response.data.games);
-    } catch (error) {
+    } catch {
       // Silently fail
       setRecentGames([]);
     } finally {

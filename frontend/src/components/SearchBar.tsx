@@ -22,7 +22,7 @@ export function SearchBar({ value, onChange }: SearchBarProps) {
     if (stored) {
       try {
         setRecentSearches(JSON.parse(stored));
-      } catch (e) {
+      } catch {
         // Ignore parse errors
       }
     }
@@ -40,7 +40,7 @@ export function SearchBar({ value, onChange }: SearchBarProps) {
       try {
         const response = await gameApi.searchGames(value);
         setSuggestions(response.data.games.slice(0, 5)); // Top 5 results
-      } catch (error) {
+      } catch {
         setSuggestions([]);
       } finally {
         setLoading(false);
