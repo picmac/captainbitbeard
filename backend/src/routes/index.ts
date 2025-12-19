@@ -2,6 +2,8 @@ import { Router } from 'express';
 import gameRoutes from './game.routes';
 import authRoutes from './auth.routes';
 import favoriteRoutes from './favorite.routes';
+import playHistoryRoutes from './playhistory.routes';
+import collectionRoutes from './collection.routes';
 
 const router = Router();
 
@@ -18,9 +20,7 @@ router.get('/', (_req, res) => {
 router.use('/auth', authRoutes);
 router.use('/games', gameRoutes);
 router.use('/favorites', favoriteRoutes);
-
-// TODO: Add more route modules
-// import userRoutes from './user.routes';
-// router.use('/users', userRoutes);
+router.use('/play-history', playHistoryRoutes);
+router.use('/collections', collectionRoutes);
 
 export default router;

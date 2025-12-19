@@ -27,6 +27,7 @@ model User {
   saveStates    SaveState[]
   favorites     Favorite[]
   playHistory   PlayHistory[]
+  collections   Collection[]
 
   @@map("users")
 }
@@ -70,11 +71,12 @@ model Game {
   createdAt       DateTime  @default(now()) @map("created_at")
   updatedAt       DateTime  @updatedAt @map("updated_at")
 
-  metadata    GameMetadata?
-  screenshots Screenshot[]
-  saveStates  SaveState[]
-  favorites   Favorite[]
-  playHistory PlayHistory[]
+  metadata       GameMetadata?
+  screenshots    Screenshot[]
+  saveStates     SaveState[]
+  favorites      Favorite[]
+  playHistory    PlayHistory[]
+  collectionGames CollectionGame[]
 
   @@index([system])
   @@index([title])
@@ -185,6 +187,36 @@ model PlayHistory {
   @@index([gameId])
   @@index([playedAt])
   @@map("play_history")
+}
+
+model Collection {
+  id          String   @id @default(uuid())
+  userId      String   @map("user_id")
+  name        String
+  description String?
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  user  User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  games CollectionGame[]
+
+  @@index([userId])
+  @@map("collections")
+}
+
+model CollectionGame {
+  collectionId String   @map("collection_id")
+  gameId       String   @map("game_id")
+  order        Int      @default(0)
+  addedAt      DateTime @default(now()) @map("added_at")
+
+  collection Collection @relation(fields: [collectionId], references: [id], onDelete: Cascade)
+  game       Game       @relation(fields: [gameId], references: [id], onDelete: Cascade)
+
+  @@id([collectionId, gameId])
+  @@index([collectionId])
+  @@index([gameId])
+  @@map("collection_games")
 }
 
 // ============================================

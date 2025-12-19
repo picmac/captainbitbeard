@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { gameApi, type Game } from '../services/api';
+import { FavoriteButton } from './FavoriteButton';
 
 interface GameCardProps {
   game: Game;
@@ -12,8 +13,8 @@ export function GameCard({ game, onMetadataFetched }: GameCardProps) {
   const [showActions, setShowActions] = useState(false);
   const navigate = useNavigate();
 
-  const handlePlayGame = () => {
-    navigate(`/play/${game.id}`);
+  const handleViewDetails = () => {
+    navigate(`/game/${game.id}`);
   };
 
   const handleScrapeMetadata = async (e: React.MouseEvent) => {
@@ -58,7 +59,7 @@ export function GameCard({ game, onMetadataFetched }: GameCardProps) {
   return (
     <div
       className="group relative cursor-pointer transition-transform hover:scale-105"
-      onClick={handlePlayGame}
+      onClick={handleViewDetails}
       onMouseEnter={() => setShowActions(true)}
       onMouseLeave={() => setShowActions(false)}
     >
@@ -114,6 +115,11 @@ export function GameCard({ game, onMetadataFetched }: GameCardProps) {
         </div>
       </div>
 
+      {/* Favorite Button (top-left, always visible) */}
+      <div className="absolute top-2 left-2 z-10">
+        <FavoriteButton gameId={game.id} onToggle={onMetadataFetched} />
+      </div>
+
       {/* Action Buttons (visible on hover) */}
       {showActions && (
         <div className="absolute top-2 right-2 space-y-1 z-10">
@@ -137,10 +143,10 @@ export function GameCard({ game, onMetadataFetched }: GameCardProps) {
         </div>
       )}
 
-      {/* Play Button Overlay (visible on hover on desktop) */}
+      {/* View Details Button Overlay (visible on hover on desktop) */}
       <div className="hidden group-hover:block">
         <div className="relative -mt-16 flex justify-center">
-          <button className="btn-retro z-10 text-xs">▶ PLAY</button>
+          <button className="btn-retro z-10 text-xs">👁️ VIEW DETAILS</button>
         </div>
       </div>
     </div>

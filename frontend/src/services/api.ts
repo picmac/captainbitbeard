@@ -116,6 +116,186 @@ export const setAuthToken = (token: string | null) => {
   }
 };
 
+// Favorites API
+export interface FavoriteResponse {
+  status: string;
+  data: {
+    favorite: {
+      id: string;
+      gameId: string;
+      userId: string;
+      createdAt: string;
+    };
+  };
+}
+
+export interface FavoriteStatusResponse {
+  status: string;
+  data: {
+    isFavorited: boolean;
+  };
+}
+
+export interface FavoriteCountResponse {
+  status: string;
+  data: {
+    count: number;
+  };
+}
+
+export const favoriteApi = {
+  // Get all user favorites
+  getUserFavorites: async (): Promise<GameListResponse> => {
+    const response = await api.get('/favorites');
+    return response.data;
+  },
+
+  // Check if game is favorited
+  getFavoriteStatus: async (gameId: string): Promise<FavoriteStatusResponse> => {
+    const response = await api.get(`/favorites/${gameId}/status`);
+    return response.data;
+  },
+
+  // Add game to favorites
+  addFavorite: async (gameId: string): Promise<FavoriteResponse> => {
+    const response = await api.post(`/favorites/${gameId}`);
+    return response.data;
+  },
+
+  // Remove game from favorites
+  removeFavorite: async (gameId: string): Promise<void> => {
+    await api.delete(`/favorites/${gameId}`);
+  },
+
+  // Toggle favorite status
+  toggleFavorite: async (gameId: string): Promise<FavoriteStatusResponse> => {
+    const response = await api.put(`/favorites/${gameId}/toggle`);
+    return response.data;
+  },
+
+  // Get favorite count for a game
+  getFavoriteCount: async (gameId: string): Promise<FavoriteCountResponse> => {
+    const response = await api.get(`/favorites/${gameId}/count`);
+    return response.data;
+  },
+};
+
+// Play History API
+export const playHistoryApi = {
+  // Get recent games
+  getRecentGames: async (limit: number = 10): Promise<GameListResponse> => {
+    const response = await api.get('/play-history/recent', { params: { limit } });
+    return response.data;
+  },
+
+  // Record play session
+  recordPlay: async (gameId: string): Promise<void> => {
+    await api.post(`/play-history/${gameId}`);
+  },
+
+  // Get play history for a game
+  getGameHistory: async (gameId: string) => {
+    const response = await api.get(`/play-history/game/${gameId}`);
+    return response.data;
+  },
+};
+
+// Collection Types
+export interface Collection {
+  id: string;
+  userId: string;
+  name: string;
+  description?: string;
+  createdAt: string;
+  updatedAt: string;
+  games: CollectionGame[];
+}
+
+export interface CollectionGame {
+  collectionId: string;
+  gameId: string;
+  order: number;
+  addedAt: string;
+  game: Game;
+}
+
+export interface CollectionResponse {
+  status: string;
+  data: {
+    collection: Collection;
+  };
+}
+
+export interface CollectionsResponse {
+  status: string;
+  data: {
+    collections: Collection[];
+  };
+}
+
+// Collection API
+export const collectionApi = {
+  // Get all user collections
+  getUserCollections: async (): Promise<CollectionsResponse> => {
+    const response = await api.get('/collections');
+    return response.data;
+  },
+
+  // Get a single collection by ID
+  getCollectionById: async (collectionId: string): Promise<CollectionResponse> => {
+    const response = await api.get(`/collections/${collectionId}`);
+    return response.data;
+  },
+
+  // Create a new collection
+  createCollection: async (
+    name: string,
+    description?: string
+  ): Promise<CollectionResponse> => {
+    const response = await api.post('/collections', { name, description });
+    return response.data;
+  },
+
+  // Update a collection
+  updateCollection: async (
+    collectionId: string,
+    updates: { name?: string; description?: string }
+  ): Promise<CollectionResponse> => {
+    const response = await api.patch(`/collections/${collectionId}`, updates);
+    return response.data;
+  },
+
+  // Delete a collection
+  deleteCollection: async (collectionId: string): Promise<void> => {
+    await api.delete(`/collections/${collectionId}`);
+  },
+
+  // Add game to collection
+  addGameToCollection: async (collectionId: string, gameId: string): Promise<void> => {
+    await api.post(`/collections/${collectionId}/games/${gameId}`);
+  },
+
+  // Remove game from collection
+  removeGameFromCollection: async (collectionId: string, gameId: string): Promise<void> => {
+    await api.delete(`/collections/${collectionId}/games/${gameId}`);
+  },
+
+  // Reorder games in collection
+  reorderGames: async (
+    collectionId: string,
+    gameOrders: Array<{ gameId: string; order: number }>
+  ): Promise<CollectionResponse> => {
+    const response = await api.put(`/collections/${collectionId}/reorder`, { gameOrders });
+    return response.data;
+  },
+
+  // Get collections that contain a specific game
+  getCollectionsWithGame: async (gameId: string): Promise<CollectionsResponse> => {
+    const response = await api.get(`/collections/game/${gameId}`);
+    return response.data;
+  },
+};
+
 // Game API
 export const gameApi = {
   // Get all games

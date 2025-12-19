@@ -1,13 +1,26 @@
 import { useEffect, useState } from 'react';
-import { gameApi, type Game } from '../services/api';
+import { gameApi, favoriteApi, type Game } from '../services/api';
 import { GameCard } from './GameCard';
+import { GameList } from './GameList';
+import { type FilterObject } from './AdvancedFilters';
 
 interface GameGridProps {
   system?: string;
   searchQuery?: string;
+  favoritesOnly?: boolean;
+  sortBy?: string;
+  viewMode?: 'grid' | 'list';
+  advancedFilters?: FilterObject;
 }
 
-export function GameGrid({ system, searchQuery }: GameGridProps) {
+export function GameGrid({
+  system,
+  searchQuery,
+  favoritesOnly,
+  sortBy = 'default',
+  viewMode = 'grid',
+  advancedFilters
+}: GameGridProps) {
   const [games, setGames] = useState<Game[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -15,7 +28,7 @@ export function GameGrid({ system, searchQuery }: GameGridProps) {
 
   useEffect(() => {
     loadGames();
-  }, [system, searchQuery, refreshKey]);
+  }, [system, searchQuery, favoritesOnly, refreshKey]);
 
   const loadGames = async () => {
     setLoading(true);
@@ -24,7 +37,10 @@ export function GameGrid({ system, searchQuery }: GameGridProps) {
     try {
       let response;
 
-      if (searchQuery) {
+      if (favoritesOnly) {
+        // Load favorites
+        response = await favoriteApi.getUserFavorites();
+      } else if (searchQuery) {
         response = await gameApi.searchGames(searchQuery);
       } else if (system) {
         response = await gameApi.getGamesBySystem(system);
@@ -43,6 +59,68 @@ export function GameGrid({ system, searchQuery }: GameGridProps) {
   const handleRefresh = () => {
     setRefreshKey((prev) => prev + 1);
   };
+
+  // Filter games based on advanced filters
+  const filterGames = (games: Game[]): Game[] => {
+    if (!advancedFilters) return games;
+
+    return games.filter((game) => {
+      // System filter (multi-select)
+      if (advancedFilters.systems.length > 0 && !advancedFilters.systems.includes(game.system)) {
+        return false;
+      }
+
+      // Genre filter
+      if (advancedFilters.genre && game.genre !== advancedFilters.genre) {
+        return false;
+      }
+
+      // Year range filter
+      if (game.releaseDate) {
+        const gameYear = new Date(game.releaseDate).getFullYear();
+        if (advancedFilters.yearFrom && gameYear < advancedFilters.yearFrom) {
+          return false;
+        }
+        if (advancedFilters.yearTo && gameYear > advancedFilters.yearTo) {
+          return false;
+        }
+      }
+
+      // Player count filter
+      if (advancedFilters.players && game.players) {
+        const playerOption = advancedFilters.players;
+        if (playerOption === '1' && game.players !== 1) return false;
+        if (playerOption === '2' && game.players !== 2) return false;
+        if (playerOption === '3-4' && (game.players < 3 || game.players > 4)) return false;
+        if (playerOption === '4+' && game.players < 4) return false;
+      }
+
+      return true;
+    });
+  };
+
+  // Sort games based on sortBy prop
+  const sortGames = (games: Game[]): Game[] => {
+    const sorted = [...games];
+
+    switch (sortBy) {
+      case 'name-asc':
+        return sorted.sort((a, b) => a.title.localeCompare(b.title));
+      case 'name-desc':
+        return sorted.sort((a, b) => b.title.localeCompare(a.title));
+      case 'date':
+        return sorted.sort((a, b) =>
+          new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+        );
+      case 'system':
+        return sorted.sort((a, b) => a.system.localeCompare(b.system));
+      default:
+        return sorted;
+    }
+  };
+
+  const filteredGames = filterGames(games);
+  const sortedGames = sortGames(filteredGames);
 
   if (loading) {
     return (
@@ -63,7 +141,7 @@ export function GameGrid({ system, searchQuery }: GameGridProps) {
     );
   }
 
-  if (games.length === 0) {
+  if (sortedGames.length === 0) {
     return (
       <div className="border-4 border-wood-brown bg-sand-beige p-8 text-center">
         <p className="text-pixel text-sm text-ocean-dark">No games found</p>
@@ -79,16 +157,20 @@ export function GameGrid({ system, searchQuery }: GameGridProps) {
       {/* Stats Bar */}
       <div className="mb-4 text-center">
         <p className="text-pixel text-xs text-skull-white">
-          📦 {games.length} game{games.length !== 1 ? 's' : ''} found
+          📦 {sortedGames.length} game{sortedGames.length !== 1 ? 's' : ''} found
         </p>
       </div>
 
-      {/* Game Grid */}
-      <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6">
-        {games.map((game) => (
-          <GameCard key={game.id} game={game} onMetadataFetched={handleRefresh} />
-        ))}
-      </div>
+      {/* Game Grid or List */}
+      {viewMode === 'list' ? (
+        <GameList games={sortedGames} onRefresh={handleRefresh} />
+      ) : (
+        <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6">
+          {sortedGames.map((game) => (
+            <GameCard key={game.id} game={game} onMetadataFetched={handleRefresh} />
+          ))}
+        </div>
+      )}
     </div>
   );
 }

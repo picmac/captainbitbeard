@@ -1,9 +1,12 @@
 import { Routes, Route } from 'react-router-dom';
 import { HomePage } from './pages/HomePage';
 import { GameLibraryPage } from './pages/GameLibraryPage';
+import { GameDetailsPage } from './pages/GameDetailsPage';
 import { GamePlayerPage } from './pages/GamePlayerPage';
 import { LoginPage } from './pages/LoginPage';
 import { AdminPage } from './pages/AdminPage';
+import { CollectionsPage } from './pages/CollectionsPage';
+import { CollectionDetailPage } from './pages/CollectionDetailPage';
 
 function App() {
   return (
@@ -12,7 +15,10 @@ function App() {
         <Route path="/" element={<HomePage />} />
         <Route path="/login" element={<LoginPage />} />
         <Route path="/library" element={<GameLibraryPage />} />
+        <Route path="/game/:gameId" element={<GameDetailsPage />} />
         <Route path="/play/:gameId" element={<GamePlayerPage />} />
+        <Route path="/collections" element={<CollectionsPage />} />
+        <Route path="/collections/:collectionId" element={<CollectionDetailPage />} />
         <Route path="/admin" element={<AdminPage />} />
       </Routes>
     </div>
