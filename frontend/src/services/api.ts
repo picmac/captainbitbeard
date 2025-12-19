@@ -201,14 +201,32 @@ export const playHistoryApi = {
 };
 
 // Collection Types
+export enum CollectionVisibility {
+  PRIVATE = 'PRIVATE',
+  PUBLIC = 'PUBLIC',
+  UNLISTED = 'UNLISTED',
+}
+
+export enum SharePermission {
+  VIEW = 'VIEW',
+  EDIT = 'EDIT',
+}
+
 export interface Collection {
   id: string;
   userId: string;
   name: string;
   description?: string;
+  visibility: CollectionVisibility;
+  shareLink?: string | null;
   createdAt: string;
   updatedAt: string;
   games: CollectionGame[];
+  user?: {
+    id: string;
+    username: string;
+  };
+  permission?: SharePermission;
 }
 
 export interface CollectionGame {
@@ -446,6 +464,160 @@ export const gameApi = {
     };
   }> => {
     const response = await api.post('/games/bulk-scrape', { gameIds });
+    return response.data;
+  },
+};
+
+// User Profile Types
+export interface UserProfile {
+  id: string;
+  userId: string;
+  avatarUrl?: string | null;
+  bio?: string | null;
+  createdAt: string;
+  updatedAt: string;
+  user: {
+    id: string;
+    username: string;
+    email: string;
+  };
+  _count?: {
+    collections: number;
+    favorites: number;
+    playHistory: number;
+  };
+}
+
+export interface UserProfileResponse {
+  status: string;
+  data: {
+    profile: UserProfile;
+  };
+}
+
+export interface UpdateUserProfileRequest {
+  avatarUrl?: string;
+  bio?: string;
+}
+
+// User Profile API
+export const userProfileApi = {
+  // Get my profile
+  getMyProfile: async (): Promise<UserProfileResponse> => {
+    const response = await api.get('/profile/me');
+    return response.data;
+  },
+
+  // Update my profile
+  updateMyProfile: async (data: UpdateUserProfileRequest): Promise<UserProfileResponse> => {
+    const response = await api.patch('/profile/me', data);
+    return response.data;
+  },
+
+  // Get user profile by ID
+  getUserProfile: async (userId: string): Promise<UserProfileResponse> => {
+    const response = await api.get(`/profile/${userId}`);
+    return response.data;
+  },
+};
+
+// Collection Share Types
+export interface CollectionShare {
+  id: string;
+  collectionId: string;
+  userId: string;
+  permission: SharePermission;
+  createdAt: string;
+  user: {
+    id: string;
+    username: string;
+  };
+}
+
+export interface CollectionShareResponse {
+  status: string;
+  data: {
+    share: CollectionShare;
+  };
+}
+
+export interface CollectionSharesResponse {
+  status: string;
+  data: {
+    shares: CollectionShare[];
+  };
+}
+
+export interface SharedCollectionsResponse {
+  status: string;
+  data: {
+    collections: Collection[];
+  };
+}
+
+// Collection Sharing API
+export const collectionShareApi = {
+  // Update collection visibility
+  updateVisibility: async (
+    collectionId: string,
+    visibility: CollectionVisibility
+  ): Promise<CollectionResponse> => {
+    const response = await api.patch(`/collection-sharing/${collectionId}/visibility`, {
+      visibility,
+    });
+    return response.data;
+  },
+
+  // Generate share link
+  generateShareLink: async (
+    collectionId: string
+  ): Promise<{
+    status: string;
+    data: { collection: Collection; shareUrl: string };
+  }> => {
+    const response = await api.post(`/collection-sharing/${collectionId}/share-link`);
+    return response.data;
+  },
+
+  // Remove share link
+  removeShareLink: async (collectionId: string): Promise<CollectionResponse> => {
+    const response = await api.delete(`/collection-sharing/${collectionId}/share-link`);
+    return response.data;
+  },
+
+  // Share with specific user
+  shareWithUser: async (
+    collectionId: string,
+    userId: string,
+    permission: SharePermission
+  ): Promise<CollectionShareResponse> => {
+    const response = await api.post(`/collection-sharing/${collectionId}/share`, {
+      userId,
+      permission,
+    });
+    return response.data;
+  },
+
+  // Get users with access to collection
+  getSharedUsers: async (collectionId: string): Promise<CollectionSharesResponse> => {
+    const response = await api.get(`/collection-sharing/${collectionId}/shares`);
+    return response.data;
+  },
+
+  // Remove user access
+  removeUserAccess: async (collectionId: string, userId: string): Promise<void> => {
+    await api.delete(`/collection-sharing/${collectionId}/shares/${userId}`);
+  },
+
+  // Get collections shared with me
+  getSharedWithMe: async (): Promise<SharedCollectionsResponse> => {
+    const response = await api.get('/collection-sharing/shared-with-me');
+    return response.data;
+  },
+
+  // Get collection by share link (public, no auth required)
+  getByShareLink: async (shareLink: string): Promise<CollectionResponse> => {
+    const response = await api.get(`/collection-sharing/shared/${shareLink}`);
     return response.data;
   },
 };

@@ -7,6 +7,8 @@ import { LoginPage } from './pages/LoginPage';
 import { AdminPage } from './pages/AdminPage';
 import { CollectionsPage } from './pages/CollectionsPage';
 import { CollectionDetailPage } from './pages/CollectionDetailPage';
+import { UserProfilePage } from './pages/UserProfilePage';
+import { SharedCollectionPage } from './pages/SharedCollectionPage';
 
 function App() {
   return (
@@ -19,6 +21,9 @@ function App() {
         <Route path="/play/:gameId" element={<GamePlayerPage />} />
         <Route path="/collections" element={<CollectionsPage />} />
         <Route path="/collections/:collectionId" element={<CollectionDetailPage />} />
+        <Route path="/shared/:shareLink" element={<SharedCollectionPage />} />
+        <Route path="/profile" element={<UserProfilePage />} />
+        <Route path="/profile/:userId" element={<UserProfilePage />} />
         <Route path="/admin" element={<AdminPage />} />
       </Routes>
     </div>

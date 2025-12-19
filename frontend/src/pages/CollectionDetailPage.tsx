@@ -1,6 +1,13 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
-import { collectionApi, type Collection } from '../services/api';
+import {
+  collectionApi,
+  collectionShareApi,
+  type Collection,
+  type CollectionShare,
+  CollectionVisibility,
+  SharePermission,
+} from '../services/api';
 import { useAuth } from '../context/AuthContext';
 
 export function CollectionDetailPage() {
@@ -14,6 +21,13 @@ export function CollectionDetailPage() {
   const [editName, setEditName] = useState('');
   const [editDescription, setEditDescription] = useState('');
   const [saving, setSaving] = useState(false);
+  const [showSharingOptions, setShowSharingOptions] = useState(false);
+  const [changingVisibility, setChangingVisibility] = useState(false);
+  const [sharedUsers, setSharedUsers] = useState<CollectionShare[]>([]);
+  const [loadingShares, setLoadingShares] = useState(false);
+  const [shareUserId, setShareUserId] = useState('');
+  const [sharePermission, setSharePermission] = useState<SharePermission>(SharePermission.VIEW);
+  const [sharing, setSharing] = useState(false);
 
   useEffect(() => {
     if (!user || !collectionId) {
@@ -32,10 +46,25 @@ export function CollectionDetailPage() {
       setCollection(response.data.collection);
       setEditName(response.data.collection.name);
       setEditDescription(response.data.collection.description || '');
+      await loadSharedUsers();
     } catch (err: any) {
       setError(err.response?.data?.message || 'Failed to load collection');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const loadSharedUsers = async () => {
+    if (!collectionId) return;
+
+    setLoadingShares(true);
+    try {
+      const response = await collectionShareApi.getSharedUsers(collectionId);
+      setSharedUsers(response.data.shares);
+    } catch (err: any) {
+      console.error('Failed to load shared users:', err);
+    } finally {
+      setLoadingShares(false);
     }
   };
 
@@ -83,6 +112,98 @@ export function CollectionDetailPage() {
 
   const handlePlayGame = (gameId: string) => {
     navigate(`/play/${gameId}`);
+  };
+
+  const handleChangeVisibility = async (visibility: CollectionVisibility) => {
+    if (!collectionId) return;
+
+    setChangingVisibility(true);
+    try {
+      const response = await collectionShareApi.updateVisibility(collectionId, visibility);
+      setCollection(response.data.collection);
+    } catch (err: any) {
+      alert(err.response?.data?.message || 'Failed to update visibility');
+    } finally {
+      setChangingVisibility(false);
+    }
+  };
+
+  const handleGenerateShareLink = async () => {
+    if (!collectionId) return;
+
+    setChangingVisibility(true);
+    try {
+      const response = await collectionShareApi.generateShareLink(collectionId);
+      setCollection(response.data.collection);
+    } catch (err: any) {
+      alert(err.response?.data?.message || 'Failed to generate share link');
+    } finally {
+      setChangingVisibility(false);
+    }
+  };
+
+  const handleRemoveShareLink = async () => {
+    if (!collectionId) return;
+    if (!window.confirm('Remove share link? This will make the collection private.')) return;
+
+    setChangingVisibility(true);
+    try {
+      const response = await collectionShareApi.removeShareLink(collectionId);
+      setCollection(response.data.collection);
+    } catch (err: any) {
+      alert(err.response?.data?.message || 'Failed to remove share link');
+    } finally {
+      setChangingVisibility(false);
+    }
+  };
+
+  const handleCopyShareLink = () => {
+    if (!collection?.shareLink) return;
+    const fullUrl = `${window.location.origin}/shared/${collection.shareLink}`;
+    navigator.clipboard.writeText(fullUrl);
+    alert('Share link copied to clipboard!');
+  };
+
+  const getVisibilityLabel = (visibility: CollectionVisibility) => {
+    switch (visibility) {
+      case CollectionVisibility.PRIVATE:
+        return '🔒 PRIVATE';
+      case CollectionVisibility.PUBLIC:
+        return '🌐 PUBLIC';
+      case CollectionVisibility.UNLISTED:
+        return '🔗 UNLISTED';
+      default:
+        return visibility;
+    }
+  };
+
+  const handleShareWithUser = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!collectionId || !shareUserId.trim()) return;
+
+    setSharing(true);
+    try {
+      await collectionShareApi.shareWithUser(collectionId, shareUserId.trim(), sharePermission);
+      setShareUserId('');
+      setSharePermission(SharePermission.VIEW);
+      await loadSharedUsers();
+    } catch (err: any) {
+      alert(err.response?.data?.message || 'Failed to share collection');
+    } finally {
+      setSharing(false);
+    }
+  };
+
+  const handleRemoveUserAccess = async (userId: string) => {
+    if (!collectionId) return;
+    if (!window.confirm('Remove this user\'s access to the collection?')) return;
+
+    try {
+      await collectionShareApi.removeUserAccess(collectionId, userId);
+      await loadSharedUsers();
+    } catch (err: any) {
+      alert(err.response?.data?.message || 'Failed to remove access');
+    }
   };
 
   if (loading) {
@@ -197,6 +318,186 @@ export function CollectionDetailPage() {
             </div>
           </div>
         )}
+      </div>
+
+      {/* Visibility & Sharing */}
+      <div className="mx-auto max-w-7xl mb-6">
+        <div className="border-4 border-wood-brown bg-sand-beige p-6">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-pixel text-sm text-ocean-dark">SHARING & PRIVACY</h2>
+            <button
+              onClick={() => setShowSharingOptions(!showSharingOptions)}
+              className="btn-retro text-[8px] px-3"
+            >
+              {showSharingOptions ? '▲ HIDE' : '▼ SHOW'}
+            </button>
+          </div>
+
+          {showSharingOptions && (
+            <div className="space-y-4">
+              {/* Current Visibility */}
+              <div>
+                <p className="text-pixel text-xs text-wood-brown mb-2">
+                  Current visibility: {getVisibilityLabel(collection.visibility)}
+                </p>
+              </div>
+
+              {/* Visibility Options */}
+              <div>
+                <label className="text-pixel text-xs text-ocean-dark block mb-2">
+                  CHANGE VISIBILITY
+                </label>
+                <div className="flex gap-2 flex-wrap">
+                  <button
+                    onClick={() => handleChangeVisibility(CollectionVisibility.PRIVATE)}
+                    disabled={changingVisibility || collection.visibility === CollectionVisibility.PRIVATE}
+                    className={`btn-retro text-[8px] ${
+                      collection.visibility === CollectionVisibility.PRIVATE
+                        ? 'bg-pirate-gold'
+                        : ''
+                    }`}
+                  >
+                    🔒 PRIVATE
+                  </button>
+                  <button
+                    onClick={() => handleChangeVisibility(CollectionVisibility.PUBLIC)}
+                    disabled={changingVisibility || collection.visibility === CollectionVisibility.PUBLIC}
+                    className={`btn-retro text-[8px] ${
+                      collection.visibility === CollectionVisibility.PUBLIC
+                        ? 'bg-pirate-gold'
+                        : ''
+                    }`}
+                  >
+                    🌐 PUBLIC
+                  </button>
+                </div>
+                <div className="mt-2 text-pixel text-[7px] text-wood-brown space-y-1">
+                  <p>🔒 PRIVATE: Only you can see this collection</p>
+                  <p>🌐 PUBLIC: Anyone can find and view this collection</p>
+                  <p>🔗 UNLISTED: Only people with the link can access</p>
+                </div>
+              </div>
+
+              {/* Share Link Section */}
+              <div className="border-t-2 border-wood-brown pt-4">
+                <label className="text-pixel text-xs text-ocean-dark block mb-2">
+                  SHARE LINK
+                </label>
+                {collection.shareLink ? (
+                  <div className="space-y-2">
+                    <div className="flex gap-2">
+                      <input
+                        type="text"
+                        readOnly
+                        value={`${window.location.origin}/shared/${collection.shareLink}`}
+                        className="flex-1 border-2 border-wood-brown bg-white p-2 text-pixel text-[8px] text-ocean-dark"
+                      />
+                      <button
+                        onClick={handleCopyShareLink}
+                        className="btn-retro text-[8px] px-3"
+                      >
+                        📋 COPY
+                      </button>
+                    </div>
+                    <button
+                      onClick={handleRemoveShareLink}
+                      disabled={changingVisibility}
+                      className="btn-retro bg-blood-red text-[8px] w-full"
+                    >
+                      🗑️ REMOVE LINK
+                    </button>
+                  </div>
+                ) : (
+                  <div>
+                    <p className="text-pixel text-[7px] text-wood-brown mb-2">
+                      Generate a shareable link. Anyone with the link can view this collection.
+                    </p>
+                    <button
+                      onClick={handleGenerateShareLink}
+                      disabled={changingVisibility}
+                      className="btn-retro text-[8px]"
+                    >
+                      🔗 GENERATE LINK
+                    </button>
+                  </div>
+                )}
+              </div>
+
+              {/* Share with Specific Users */}
+              <div className="border-t-2 border-wood-brown pt-4">
+                <label className="text-pixel text-xs text-ocean-dark block mb-2">
+                  SHARE WITH USERS
+                </label>
+
+                {/* Add User Form */}
+                <form onSubmit={handleShareWithUser} className="mb-4">
+                  <div className="flex gap-2 mb-2">
+                    <input
+                      type="text"
+                      value={shareUserId}
+                      onChange={(e) => setShareUserId(e.target.value)}
+                      placeholder="User ID..."
+                      className="flex-1 border-2 border-wood-brown bg-white p-2 text-pixel text-[8px] text-ocean-dark"
+                    />
+                    <select
+                      value={sharePermission}
+                      onChange={(e) => setSharePermission(e.target.value as SharePermission)}
+                      className="border-2 border-wood-brown bg-white p-2 text-pixel text-[8px] text-ocean-dark"
+                    >
+                      <option value={SharePermission.VIEW}>VIEW</option>
+                      <option value={SharePermission.EDIT}>EDIT</option>
+                    </select>
+                  </div>
+                  <button
+                    type="submit"
+                    disabled={sharing || !shareUserId.trim()}
+                    className="btn-retro text-[8px] w-full"
+                  >
+                    {sharing ? 'SHARING...' : '➕ SHARE'}
+                  </button>
+                </form>
+
+                {/* Shared Users List */}
+                <div>
+                  {loadingShares ? (
+                    <p className="text-pixel text-[7px] text-wood-brown">Loading...</p>
+                  ) : sharedUsers.length > 0 ? (
+                    <div className="space-y-2">
+                      <p className="text-pixel text-[7px] text-wood-brown mb-2">
+                        {sharedUsers.length} user(s) with access:
+                      </p>
+                      {sharedUsers.map((share) => (
+                        <div
+                          key={share.id}
+                          className="flex items-center justify-between border-2 border-wood-brown bg-white p-2"
+                        >
+                          <div className="flex-1">
+                            <p className="text-pixel text-[8px] text-ocean-dark">
+                              {share.user.username}
+                            </p>
+                            <p className="text-pixel text-[7px] text-wood-brown">
+                              {share.permission === SharePermission.VIEW ? '👁️ View' : '✏️ Edit'}
+                            </p>
+                          </div>
+                          <button
+                            onClick={() => handleRemoveUserAccess(share.userId)}
+                            className="btn-retro bg-blood-red text-[8px] px-2"
+                          >
+                            🗑️
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-pixel text-[7px] text-wood-brown">
+                      No users shared yet.
+                    </p>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Games Grid */}

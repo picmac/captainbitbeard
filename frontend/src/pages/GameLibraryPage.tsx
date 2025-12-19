@@ -93,6 +93,9 @@ export function GameLibraryPage() {
         <Link to="/collections" className="btn-retro text-xs">
           📚 MY COLLECTIONS
         </Link>
+        <Link to="/profile" className="btn-retro text-xs">
+          👤 MY PROFILE
+        </Link>
         <Link to="/admin" className="btn-retro text-xs">
           ⚙️ ADMIN PANEL
         </Link>
