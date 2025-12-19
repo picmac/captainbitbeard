@@ -10,6 +10,8 @@ import saveStateRoutes from './savestate.routes';
 import screenshotRoutes from './screenshot.routes';
 import adminRoutes from './admin.routes';
 import savedSearchRoutes from './savedsearch.routes';
+import gameVersionRoutes from './gameversion.routes';
+import biosRoutes from './bios.routes';
 
 const router = Router();
 
@@ -34,5 +36,7 @@ router.use('/save-states', saveStateRoutes);
 router.use('/screenshots', screenshotRoutes);
 router.use('/admin', adminRoutes);
 router.use('/saved-searches', savedSearchRoutes);
+router.use('/game-versions', gameVersionRoutes);
+router.use('/bios', biosRoutes);
 
 export default router;

@@ -57,36 +57,65 @@ model UserProfile {
 // ============================================
 
 model Game {
-  id              String    @id @default(uuid())
+  id              String      @id @default(uuid())
   title           String
-  system          String    // nes, snes, gb, etc.
-  romPath         String    @map("rom_path")   // MinIO path
-  coverUrl        String?   @map("cover_url")  // MinIO URL (primary cover)
-  boxArtUrl       String?   @map("box_art_url") // Alternative box art
-  backgroundUrl   String?   @map("background_url") // Fanart/background image
-  logoUrl         String?   @map("logo_url")    // Game logo
-  videoUrl        String?   @map("video_url")   // Trailer/gameplay video URL
+  system          String      // nes, snes, gb, etc.
+  romPath         String      @map("rom_path")   // MinIO path
+  coverUrl        String?     @map("cover_url")  // MinIO URL (primary cover)
+  boxArtUrl       String?     @map("box_art_url") // Alternative box art
+  backgroundUrl   String?     @map("background_url") // Fanart/background image
+  logoUrl         String?     @map("logo_url")    // Game logo
+  videoUrl        String?     @map("video_url")   // Trailer/gameplay video URL
   description     String?
-  releaseDate     DateTime? @map("release_date")
+  releaseDate     DateTime?   @map("release_date")
   developer       String?
   publisher       String?
   genre           String?
-  players         Int?      // Number of players (1-4)
-  rating          Float?    // User rating
-  screenscrapeId  String?   @map("screenscrape_id") @unique
-  createdAt       DateTime  @default(now()) @map("created_at")
-  updatedAt       DateTime  @updatedAt @map("updated_at")
+  players         Int?        // Number of players (1-4)
+  rating          Float?      // User rating
+  screenscrapeId  String?     @map("screenscrape_id") @unique
 
-  metadata       GameMetadata?
-  screenshots    Screenshot[]
-  saveStates     SaveState[]
-  favorites      Favorite[]
-  playHistory    PlayHistory[]
-  collectionGames CollectionGame[]
+  // Multi-file game support
+  parentGameId    String?     @map("parent_game_id") // For multi-disc/file games
+  fileNumber      Int?        @map("file_number")    // Disc/File number (1, 2, 3...)
+  isMultiFile     Boolean     @default(false) @map("is_multi_file")
+
+  // Version tracking
+  region          GameRegion? @default(USA)
+  revision        String?     // ROM revision (Rev A, Rev B, etc.)
+  versionNotes    String?     @map("version_notes") // Version-specific notes
+
+  createdAt       DateTime    @default(now()) @map("created_at")
+  updatedAt       DateTime    @updatedAt @map("updated_at")
+
+  metadata         GameMetadata?
+  screenshots      Screenshot[]
+  saveStates       SaveState[]
+  favorites        Favorite[]
+  playHistory      PlayHistory[]
+  collectionGames  CollectionGame[]
+  versions         GameVersion[]    @relation("GameVersions")
+
+  // Multi-file relationships
+  parentGame       Game?       @relation("MultiFileGames", fields: [parentGameId], references: [id], onDelete: Cascade)
+  childGames       Game[]      @relation("MultiFileGames")
 
   @@index([system])
   @@index([title])
+  @@index([parentGameId])
   @@map("games")
+}
+
+enum GameRegion {
+  USA
+  EUR   // Europe
+  JPN   // Japan
+  KOR   // Korea
+  CHN   // China
+  BRA   // Brazil
+  AUS   // Australia
+  WORLD // Multi-region
+  UNK   // Unknown
 }
 
 model GameMetadata {
@@ -120,19 +149,53 @@ model Screenshot {
 }
 
 // ============================================
+// Game Versions
+// ============================================
+
+model GameVersion {
+  id           String     @id @default(uuid())
+  gameId       String     @map("game_id")
+  versionName  String     @map("version_name") // "USA Rev A", "Europe", "Japan (Rev 1)"
+  region       GameRegion
+  revision     String?    // Rev A, Rev B, v1.0, v1.1, etc.
+  romPath      String     @map("rom_path")     // MinIO path to this version's ROM
+  md5Hash      String     @map("md5_hash")     // For verification
+  fileSize     BigInt     @map("file_size")
+  releaseDate  DateTime?  @map("release_date")
+  changes      String?    // What changed in this version
+  isPreferred  Boolean    @default(false) @map("is_preferred") // Preferred version to play
+  createdAt    DateTime   @default(now()) @map("created_at")
+  updatedAt    DateTime   @updatedAt @map("updated_at")
+
+  game Game @relation("GameVersions", fields: [gameId], references: [id], onDelete: Cascade)
+
+  @@index([gameId])
+  @@index([region])
+  @@map("game_versions")
+}
+
+// ============================================
 // BIOS Management
 // ============================================
 
 model BiosFile {
-  id        String   @id @default(uuid())
-  system    String   // ps1, saturn, etc.
-  fileName  String   @map("file_name")
-  filePath  String   @map("file_path")  // MinIO path
-  md5Hash   String   @map("md5_hash")
-  required  Boolean  @default(true)
-  createdAt DateTime @default(now()) @map("created_at")
+  id          String    @id @default(uuid())
+  system      String    // ps1, saturn, psp, etc.
+  fileName    String    @map("file_name")
+  filePath    String    @map("file_path")    // MinIO path
+  md5Hash     String    @map("md5_hash")
+  fileSize    BigInt    @map("file_size")
+  description String?   // What this BIOS is for
+  region      String?   // USA, JPN, EUR, etc.
+  version     String?   // BIOS version
+  required    Boolean   @default(true)
+  verified    Boolean   @default(false)     // MD5 verified
+  uploadedBy  String?   @map("uploaded_by") // User ID who uploaded
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
 
   @@unique([system, fileName])
+  @@index([system])
   @@map("bios_files")
 }
 
