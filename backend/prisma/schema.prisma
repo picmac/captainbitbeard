@@ -60,7 +60,11 @@ model Game {
   title           String
   system          String    // nes, snes, gb, etc.
   romPath         String    @map("rom_path")   // MinIO path
-  coverUrl        String?   @map("cover_url")  // MinIO URL
+  coverUrl        String?   @map("cover_url")  // MinIO URL (primary cover)
+  boxArtUrl       String?   @map("box_art_url") // Alternative box art
+  backgroundUrl   String?   @map("background_url") // Fanart/background image
+  logoUrl         String?   @map("logo_url")    // Game logo
+  videoUrl        String?   @map("video_url")   // Trailer/gameplay video URL
   description     String?
   releaseDate     DateTime? @map("release_date")
   developer       String?

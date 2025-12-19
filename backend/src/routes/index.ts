@@ -7,6 +7,7 @@ import collectionRoutes from './collection.routes';
 import collectionShareRoutes from './collectionshare.routes';
 import userprofileRoutes from './userprofile.routes';
 import saveStateRoutes from './savestate.routes';
+import screenshotRoutes from './screenshot.routes';
 
 const router = Router();
 
@@ -28,5 +29,6 @@ router.use('/collections', collectionRoutes);
 router.use('/collection-sharing', collectionShareRoutes);
 router.use('/profile', userprofileRoutes);
 router.use('/save-states', saveStateRoutes);
+router.use('/screenshots', screenshotRoutes);
 
 export default router;
