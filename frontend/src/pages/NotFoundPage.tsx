@@ -1,5 +1,5 @@
 import { useNavigate } from 'react-router-dom';
-import PageTitle from '../components/PageTitle';
+import { PageTitle } from '../components/PageTitle';
 
 export default function NotFoundPage() {
   const navigate = useNavigate();

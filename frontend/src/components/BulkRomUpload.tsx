@@ -6,18 +6,21 @@ interface BulkRomUploadProps {
   onUploadComplete?: () => void;
 }
 
+interface FileProgress {
+  name: string;
+  progress: number;
+  status: 'pending' | 'uploading' | 'success' | 'error';
+  error?: string;
+  gameId?: string;
+}
+
 export function BulkRomUpload({ onUploadComplete }: BulkRomUploadProps) {
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [system, setSystem] = useState('');
   const [autoScrape, setAutoScrape] = useState(true);
   const [uploading, setUploading] = useState(false);
-  const [uploadProgress, setUploadProgress] = useState(0);
+  const [fileProgress, setFileProgress] = useState<FileProgress[]>([]);
   const [error, setError] = useState('');
-  const [results, setResults] = useState<{
-    total: number;
-    successful: string[];
-    failed: Array<{ filename: string; error: string }>;
-  } | null>(null);
   const [dragActive, setDragActive] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -49,10 +52,55 @@ export function BulkRomUpload({ onUploadComplete }: BulkRomUploadProps) {
     }
   };
 
+  const validateFile = (file: File): string | null => {
+    // File size validation (100MB limit)
+    const maxSizeBytes = 100 * 1024 * 1024;
+    if (file.size > maxSizeBytes) {
+      return `File size (${(file.size / 1024 / 1024).toFixed(2)} MB) exceeds maximum allowed size of 100 MB`;
+    }
+
+    // Minimum file size (1KB to avoid empty files)
+    if (file.size < 1024) {
+      return 'File is too small. ROM files must be at least 1 KB';
+    }
+
+    // File extension validation
+    const allowedExtensions = [
+      '.nes', '.snes', '.sfc', '.gb', '.gbc', '.gba',
+      '.n64', '.z64', '.nds', '.smd', '.gen', '.sms',
+      '.gg', '.iso', '.cue', '.bin', '.zip', '.7z', '.rar'
+    ];
+
+    const ext = file.name.toLowerCase().slice(file.name.lastIndexOf('.'));
+    if (!allowedExtensions.includes(ext)) {
+      return `Invalid file type: ${ext}`;
+    }
+
+    return null;
+  };
+
   const handleFiles = (files: File[]) => {
-    setSelectedFiles(files);
-    setError('');
-    setResults(null);
+    // Validate all files
+    const invalidFiles: string[] = [];
+    const validFiles: File[] = [];
+
+    files.forEach((file) => {
+      const validationError = validateFile(file);
+      if (validationError) {
+        invalidFiles.push(`${file.name}: ${validationError}`);
+      } else {
+        validFiles.push(file);
+      }
+    });
+
+    if (invalidFiles.length > 0) {
+      setError(`Invalid files detected:\n${invalidFiles.slice(0, 5).join('\n')}${invalidFiles.length > 5 ? `\n... and ${invalidFiles.length - 5} more` : ''}`);
+    } else {
+      setError('');
+    }
+
+    setSelectedFiles(validFiles);
+    setFileProgress([]);
   };
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -75,23 +123,86 @@ export function BulkRomUpload({ onUploadComplete }: BulkRomUploadProps) {
 
     setUploading(true);
     setError('');
-    setResults(null);
-    setUploadProgress(0);
+
+    // Initialize progress for all files
+    const initialProgress: FileProgress[] = selectedFiles.map((file) => ({
+      name: file.name,
+      progress: 0,
+      status: 'pending' as const,
+    }));
+    setFileProgress(initialProgress);
 
     try {
-      const response = await gameApi.bulkUploadRoms(
-        selectedFiles,
-        system,
-        autoScrape,
-        (progressEvent: any) => {
-          const progress = Math.round((progressEvent.loaded * 100) / progressEvent.total);
-          setUploadProgress(progress);
-        }
-      );
+      // Upload files sequentially to track individual progress
+      for (let i = 0; i < selectedFiles.length; i++) {
+        const file = selectedFiles[i];
 
-      setResults(response.data.results);
+        // Update status to uploading
+        setFileProgress((prev) =>
+          prev.map((fp, idx) =>
+            idx === i ? { ...fp, status: 'uploading' as const } : fp
+          )
+        );
+
+        try {
+          // Extract title from filename
+          const title = file.name.replace(/\.[^/.]+$/, '');
+
+          // Upload individual ROM
+          const response = await gameApi.uploadRom(
+            file,
+            {
+              title,
+              system,
+            },
+            (progressEvent: any) => {
+              const progress = Math.round((progressEvent.loaded * 100) / progressEvent.total);
+              setFileProgress((prev) =>
+                prev.map((fp, idx) => (idx === i ? { ...fp, progress } : fp))
+              );
+            }
+          );
+
+          // Mark as success
+          setFileProgress((prev) =>
+            prev.map((fp, idx) =>
+              idx === i
+                ? {
+                    ...fp,
+                    progress: 100,
+                    status: 'success' as const,
+                    gameId: response.data.game.id,
+                  }
+                : fp
+            )
+          );
+
+          // Auto-scrape if enabled
+          if (autoScrape && response.data.game.id) {
+            try {
+              await gameApi.scrapeMetadata(response.data.game.id);
+            } catch (scrapeError) {
+              console.error(`Failed to scrape metadata for ${title}:`, scrapeError);
+            }
+          }
+        } catch (err: any) {
+          const errorMessage = err.response?.data?.message || 'Upload failed';
+          setFileProgress((prev) =>
+            prev.map((fp, idx) =>
+              idx === i
+                ? {
+                    ...fp,
+                    status: 'error' as const,
+                    error: errorMessage,
+                  }
+                : fp
+            )
+          );
+        }
+      }
+
+      // Clear selected files after successful upload
       setSelectedFiles([]);
-      setUploadProgress(0);
 
       if (fileInputRef.current) {
         fileInputRef.current.value = '';
@@ -101,7 +212,7 @@ export function BulkRomUpload({ onUploadComplete }: BulkRomUploadProps) {
         onUploadComplete();
       }
     } catch (err: any) {
-      setError(err.response?.data?.message || 'Bulk upload failed');
+      setError(err.message || 'Bulk upload failed');
     } finally {
       setUploading(false);
     }
@@ -217,21 +328,45 @@ export function BulkRomUpload({ onUploadComplete }: BulkRomUploadProps) {
             </label>
           </div>
 
-          {/* Upload Progress */}
-          {uploading && (
+          {/* Per-File Upload Progress */}
+          {fileProgress.length > 0 && (
             <div className="border-4 border-wood-brown bg-ocean-dark p-4">
-              <p className="text-pixel mb-2 text-xs text-skull-white">
-                UPLOADING {selectedFiles.length} ROMS... {uploadProgress}%
+              <p className="text-pixel mb-3 text-xs text-skull-white">
+                UPLOADING ROMS ({fileProgress.filter(f => f.status === 'success').length}/{fileProgress.length} complete)
               </p>
-              <div className="h-4 border-2 border-pirate-gold bg-night-sky">
-                <div
-                  className="h-full bg-pirate-gold transition-all"
-                  style={{ width: `${uploadProgress}%` }}
-                />
+              <div className="max-h-96 space-y-2 overflow-y-auto">
+                {fileProgress.map((file, index) => (
+                  <div key={index} className="border-2 border-wood-brown bg-sand-beige p-2">
+                    <div className="flex items-center justify-between mb-1">
+                      <span className="text-pixel text-xs text-ocean-dark truncate flex-1">
+                        {file.name}
+                      </span>
+                      <span className="text-pixel text-xs ml-2">
+                        {file.status === 'pending' && '⏳'}
+                        {file.status === 'uploading' && '📤'}
+                        {file.status === 'success' && '✅'}
+                        {file.status === 'error' && '❌'}
+                      </span>
+                    </div>
+                    {file.status === 'uploading' && (
+                      <div className="h-2 border border-wood-brown bg-night-sky">
+                        <div
+                          className="h-full bg-pirate-gold transition-all"
+                          style={{ width: `${file.progress}%` }}
+                        />
+                      </div>
+                    )}
+                    {file.status === 'error' && file.error && (
+                      <p className="text-pixel text-xxs text-blood-red mt-1">
+                        {file.error}
+                      </p>
+                    )}
+                  </div>
+                ))}
               </div>
-              {autoScrape && (
-                <p className="text-pixel mt-2 text-xxs text-skull-white/70">
-                  ⏳ Fetching covers and metadata... This may take a while.
+              {autoScrape && uploading && (
+                <p className="text-pixel mt-3 text-xxs text-skull-white/70">
+                  ⏳ Auto-fetching covers and metadata after each upload...
                 </p>
               )}
             </div>
@@ -240,35 +375,7 @@ export function BulkRomUpload({ onUploadComplete }: BulkRomUploadProps) {
           {/* Error Message */}
           {error && (
             <div className="border-4 border-blood-red bg-blood-red/20 p-4">
-              <p className="text-pixel text-xs text-skull-white">❌ {error}</p>
-            </div>
-          )}
-
-          {/* Results */}
-          {results && (
-            <div className="border-4 border-treasure-green bg-treasure-green/20 p-4">
-              <p className="text-pixel text-sm text-skull-white mb-3">
-                ✅ Upload Complete!
-              </p>
-              <div className="text-pixel text-xs text-skull-white space-y-2">
-                <p>
-                  📊 Total: {results.total} | Success: {results.successful.length} | Failed:{' '}
-                  {results.failed.length}
-                </p>
-
-                {results.failed.length > 0 && (
-                  <div className="mt-4 border-2 border-blood-red bg-blood-red/10 p-3">
-                    <p className="font-bold mb-2">❌ Failed uploads:</p>
-                    <div className="space-y-1 max-h-32 overflow-y-auto">
-                      {results.failed.map((fail, idx) => (
-                        <div key={idx} className="text-xxs">
-                          • {fail.filename}: {fail.error}
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </div>
+              <p className="text-pixel text-xs text-skull-white whitespace-pre-line">❌ {error}</p>
             </div>
           )}
 

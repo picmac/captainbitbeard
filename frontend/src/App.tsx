@@ -15,6 +15,8 @@ import NotFoundPage from './pages/NotFoundPage';
 import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts';
 import { KeyboardShortcutsHelp } from './components/KeyboardShortcutsHelp';
 import { SkipToContent } from './components/SkipToContent';
+import { PWAInstallPrompt } from './components/PWAInstallPrompt';
+import { OfflineIndicator } from './components/OfflineIndicator';
 
 function App() {
   // Enable global keyboard shortcuts
@@ -44,6 +46,12 @@ function App() {
 
       {/* Global Keyboard Shortcuts Help */}
       <KeyboardShortcutsHelp />
+
+      {/* PWA Install Prompt */}
+      <PWAInstallPrompt />
+
+      {/* Offline Indicator */}
+      <OfflineIndicator />
 
       {/* Toast Notifications */}
       <Toaster

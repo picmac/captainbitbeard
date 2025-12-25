@@ -1,6 +1,8 @@
 import { useState, useRef } from 'react';
-import { gameApi } from '../services/api';
+import { gameApi, Game } from '../services/api';
 import { getSystemsByManufacturer } from '../constants/systems';
+import { calculateMD5 } from '../utils/romVerification';
+import { ConfirmationModal } from './ConfirmationModal';
 
 interface RomUploadProps {
   onUploadComplete?: () => void;
@@ -16,6 +18,10 @@ export function RomUpload({ onUploadComplete }: RomUploadProps) {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
   const [dragActive, setDragActive] = useState(false);
+  const [verifyingHash, setVerifyingHash] = useState(false);
+  const [duplicateGame, setDuplicateGame] = useState<Game | null>(null);
+  const [showDuplicateModal, setShowDuplicateModal] = useState(false);
+  const [calculatedMD5, setCalculatedMD5] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Detect mobile device
@@ -46,15 +52,72 @@ export function RomUpload({ onUploadComplete }: RomUploadProps) {
     }
   };
 
-  const handleFile = (file: File) => {
+  const validateFile = (file: File): string | null => {
+    // File size validation (100MB limit)
+    const maxSizeBytes = 100 * 1024 * 1024;
+    if (file.size > maxSizeBytes) {
+      return `File size (${(file.size / 1024 / 1024).toFixed(2)} MB) exceeds maximum allowed size of 100 MB`;
+    }
+
+    // Minimum file size (1KB to avoid empty files)
+    if (file.size < 1024) {
+      return 'File is too small. ROM files must be at least 1 KB';
+    }
+
+    // File extension validation
+    const allowedExtensions = [
+      '.nes', '.snes', '.sfc', '.gb', '.gbc', '.gba',
+      '.n64', '.z64', '.nds', '.smd', '.gen', '.sms',
+      '.gg', '.iso', '.cue', '.bin', '.zip', '.7z', '.rar'
+    ];
+
+    const ext = file.name.toLowerCase().slice(file.name.lastIndexOf('.'));
+    if (!allowedExtensions.includes(ext)) {
+      return `Invalid file type: ${ext}. Allowed types: ${allowedExtensions.join(', ')}`;
+    }
+
+    return null;
+  };
+
+  const handleFile = async (file: File) => {
+    // Validate file first
+    const validationError = validateFile(file);
+    if (validationError) {
+      setError(validationError);
+      setSelectedFile(null);
+      return;
+    }
+
     setSelectedFile(file);
     setError('');
     setSuccess(false);
+    setDuplicateGame(null);
+    setCalculatedMD5(null);
 
     // Auto-extract title from filename (remove extension)
     if (!title) {
       const filename = file.name.replace(/\.[^/.]+$/, '');
       setTitle(filename);
+    }
+
+    // Calculate MD5 and check for duplicates
+    try {
+      setVerifyingHash(true);
+      const md5Hash = await calculateMD5(file);
+      setCalculatedMD5(md5Hash);
+
+      // Check if this ROM already exists
+      const duplicateCheck = await gameApi.checkDuplicate(md5Hash);
+
+      if (duplicateCheck.data.isDuplicate && duplicateCheck.data.existingGame) {
+        setDuplicateGame(duplicateCheck.data.existingGame);
+        setShowDuplicateModal(true);
+      }
+    } catch (err) {
+      console.error('Failed to verify ROM:', err);
+      // Don't block upload if verification fails
+    } finally {
+      setVerifyingHash(false);
     }
   };
 
@@ -224,6 +287,15 @@ export function RomUpload({ onUploadComplete }: RomUploadProps) {
             />
           </div>
 
+          {/* Hash Verification Progress */}
+          {verifyingHash && (
+            <div className="border-4 border-ocean-blue bg-ocean-blue/20 p-4">
+              <p className="text-pixel text-xs text-skull-white">
+                🔐 VERIFYING ROM INTEGRITY...
+              </p>
+            </div>
+          )}
+
           {/* Upload Progress */}
           {uploading && (
             <div className="border-4 border-wood-brown bg-ocean-dark p-4">
@@ -258,13 +330,55 @@ export function RomUpload({ onUploadComplete }: RomUploadProps) {
           {/* Submit Button */}
           <button
             type="submit"
-            disabled={uploading || !selectedFile || !title || !system}
+            disabled={uploading || verifyingHash || !selectedFile || !title || !system}
             className="btn-retro w-full"
           >
-            {uploading ? 'UPLOADING...' : 'UPLOAD ROM'}
+            {uploading ? 'UPLOADING...' : verifyingHash ? 'VERIFYING...' : 'UPLOAD ROM'}
           </button>
         </form>
       </div>
+
+      {/* Duplicate Warning Modal */}
+      <ConfirmationModal
+        isOpen={showDuplicateModal}
+        onClose={() => {
+          setShowDuplicateModal(false);
+          setDuplicateGame(null);
+        }}
+        onConfirm={async () => {
+          setShowDuplicateModal(false);
+          // User confirmed to upload anyway - just close modal and let them proceed
+        }}
+        title="⚠️ DUPLICATE ROM DETECTED"
+        message="This ROM file already exists in your library. Would you like to upload it anyway as a duplicate?"
+        confirmText="UPLOAD ANYWAY"
+        cancelText="CANCEL"
+        type="warning"
+      >
+        {duplicateGame && (
+          <div className="text-pixel text-xs">
+            <p className="mb-2 font-bold text-pirate-gold">
+              Existing Game:
+            </p>
+            <p className="mb-1">
+              <span className="text-wood-brown">Title:</span> {duplicateGame.title}
+            </p>
+            <p className="mb-1">
+              <span className="text-wood-brown">System:</span> {duplicateGame.system.toUpperCase()}
+            </p>
+            {duplicateGame.developer && (
+              <p className="mb-1">
+                <span className="text-wood-brown">Developer:</span> {duplicateGame.developer}
+              </p>
+            )}
+            {calculatedMD5 && (
+              <p className="mt-2 text-[8px] text-ocean-dark/60">
+                MD5: {calculatedMD5}
+              </p>
+            )}
+          </div>
+        )}
+      </ConfirmationModal>
     </div>
   );
 }

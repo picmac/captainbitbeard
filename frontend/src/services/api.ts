@@ -365,6 +365,18 @@ export const gameApi = {
     return response.data;
   },
 
+  // Check for duplicate ROM by MD5 hash
+  checkDuplicate: async (md5Hash: string): Promise<{
+    status: string;
+    data: {
+      isDuplicate: boolean;
+      existingGame: Game | null;
+    };
+  }> => {
+    const response = await api.post('/games/check-duplicate', { md5Hash });
+    return response.data;
+  },
+
   // Upload ROM
   uploadRom: async (
     romFile: File,

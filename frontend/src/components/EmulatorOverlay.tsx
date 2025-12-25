@@ -3,6 +3,8 @@ import { useState, useEffect } from 'react';
 interface EmulatorOverlayProps {
   onSave: () => void;
   onLoad: () => void;
+  onQuickSave: (slot: number) => void;
+  onQuickLoad: (slot: number) => void;
   onScreenshot: () => void;
   onFullscreen: () => void;
   onExit: () => void;
@@ -13,6 +15,8 @@ interface EmulatorOverlayProps {
 export function EmulatorOverlay({
   onSave,
   onLoad,
+  onQuickSave,
+  onQuickLoad,
   onScreenshot,
   onFullscreen,
   onExit,
@@ -66,6 +70,18 @@ export function EmulatorOverlay({
         return;
       }
 
+      // Quick Save/Load shortcuts (F5-F8)
+      if (e.key === 'F5' || e.key === 'F6' || e.key === 'F7' || e.key === 'F8') {
+        e.preventDefault();
+        const slot = parseInt(e.key.substring(1)) - 4; // F5=slot1, F6=slot2, F7=slot3, F8=slot4
+        if (e.shiftKey) {
+          onQuickLoad(slot);
+        } else {
+          onQuickSave(slot);
+        }
+        return;
+      }
+
       switch (e.key.toLowerCase()) {
         case 'f':
           if (e.ctrlKey) {
@@ -111,7 +127,7 @@ export function EmulatorOverlay({
 
     window.addEventListener('keydown', handleKeyPress);
     return () => window.removeEventListener('keydown', handleKeyPress);
-  }, [showMenu, showHotkeys, isFullscreen, onFullscreen, onSave, onLoad, onScreenshot]);
+  }, [showMenu, showHotkeys, isFullscreen, onFullscreen, onSave, onLoad, onQuickSave, onQuickLoad, onScreenshot]);
 
   // Handle volume change
   const handleVolumeChange = (newVolume: number) => {
@@ -384,6 +400,16 @@ export function EmulatorOverlay({
                 <span>Load State</span>
                 <kbd className="bg-pirate-gold text-ocean-dark px-2 py-1">Ctrl + L</kbd>
               </div>
+              <hr className="border-wood-brown my-2" />
+              <div className="flex justify-between items-center">
+                <span className="text-treasure-green">⚡ Quick Save Slot 1-4</span>
+                <kbd className="bg-treasure-green text-ocean-dark px-2 py-1">F5-F8</kbd>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-ocean-blue">⚡ Quick Load Slot 1-4</span>
+                <kbd className="bg-ocean-blue text-skull-white px-2 py-1">Shift + F5-F8</kbd>
+              </div>
+              <hr className="border-wood-brown my-2" />
               <div className="flex justify-between items-center">
                 <span>Screenshot</span>
                 <kbd className="bg-pirate-gold text-ocean-dark px-2 py-1">Ctrl + P</kbd>

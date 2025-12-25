@@ -10,14 +10,20 @@ export default defineConfig({
     VitePWA({
       registerType: 'autoUpdate',
       includeAssets: ['favicon.ico', 'robots.txt', 'apple-touch-icon.png'],
+      devOptions: {
+        enabled: false, // Enable in dev for testing: true
+      },
       manifest: {
-        name: 'Captain Bitbeard',
+        name: 'Captain Bitbeard - Retro Gaming Platform',
         short_name: 'Bitbeard',
-        description: 'Self-hosted retro gaming platform',
+        description: 'Self-hosted retro gaming platform with 60+ emulated systems. Play classic games offline!',
         theme_color: '#0F4C81',
         background_color: '#191970',
         display: 'standalone',
-        orientation: 'portrait-primary',
+        orientation: 'any',
+        scope: '/',
+        start_url: '/',
+        categories: ['games', 'entertainment'],
         icons: [
           {
             src: '/pwa-192x192.png',
@@ -36,8 +42,35 @@ export default defineConfig({
             purpose: 'any maskable',
           },
         ],
+        shortcuts: [
+          {
+            name: 'Game Library',
+            short_name: 'Library',
+            description: 'Browse your game collection',
+            url: '/library',
+            icons: [{ src: '/pwa-192x192.png', sizes: '192x192' }],
+          },
+          {
+            name: 'Save States',
+            short_name: 'Saves',
+            description: 'View your saved games',
+            url: '/save-states',
+            icons: [{ src: '/pwa-192x192.png', sizes: '192x192' }],
+          },
+          {
+            name: 'Collections',
+            short_name: 'Collections',
+            description: 'Browse your collections',
+            url: '/collections',
+            icons: [{ src: '/pwa-192x192.png', sizes: '192x192' }],
+          },
+        ],
       },
       workbox: {
+        globPatterns: ['**/*.{js,css,html,ico,png,svg,woff,woff2}'],
+        navigateFallback: '/index.html',
+        navigateFallbackDenylist: [/^\/api/],
+        cleanupOutdatedCaches: true,
         runtimeCaching: [
           {
             urlPattern: /^https:\/\/fonts\.googleapis\.com\/.*/i,
@@ -93,6 +126,50 @@ export default defineConfig({
               },
               cacheableResponse: {
                 statuses: [200, 206], // Cache full and partial responses
+              },
+            },
+          },
+          {
+            // Cache game cover images and screenshots
+            urlPattern: /\.(jpg|jpeg|png|gif|webp)$/i,
+            handler: 'CacheFirst',
+            options: {
+              cacheName: 'images-cache',
+              expiration: {
+                maxEntries: 100,
+                maxAgeSeconds: 60 * 60 * 24 * 30, // 30 days
+              },
+              cacheableResponse: {
+                statuses: [0, 200],
+              },
+            },
+          },
+          {
+            // Network-first for game list and metadata
+            urlPattern: /\/api\/games(\?.*)?$/i,
+            handler: 'NetworkFirst',
+            options: {
+              cacheName: 'api-games-cache',
+              networkTimeoutSeconds: 5,
+              expiration: {
+                maxEntries: 50,
+                maxAgeSeconds: 60 * 60, // 1 hour
+              },
+              cacheableResponse: {
+                statuses: [200],
+              },
+            },
+          },
+          {
+            // Cache-first for save states (offline viewing)
+            urlPattern: /\/api\/save-states/i,
+            handler: 'NetworkFirst',
+            options: {
+              cacheName: 'save-states-cache',
+              networkTimeoutSeconds: 5,
+              expiration: {
+                maxEntries: 50,
+                maxAgeSeconds: 60 * 60 * 24, // 1 day
               },
             },
           },

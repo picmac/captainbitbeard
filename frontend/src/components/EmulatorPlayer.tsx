@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, useCallback, useMemo } from 'react';
 import { saveStateApi, type SaveState } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import { EmulatorOverlay } from './EmulatorOverlay';
+import { TouchControls } from './TouchControls';
 import { toast } from '../utils/toast';
 import { ConfirmationModal } from './ConfirmationModal';
 
@@ -345,6 +346,75 @@ export function EmulatorPlayer({
     }
   };
 
+  const handleQuickSave = async (slot: number) => {
+    if (!user || !window.EJS_emulator) {
+      toast.warning('Login Required', 'Please log in to save your progress');
+      return;
+    }
+
+    try {
+      // Get save state from EmulatorJS
+      const stateData = window.EJS_emulator.gameManager.getState();
+      if (!stateData) {
+        throw new Error('Failed to get save state from emulator');
+      }
+
+      // Convert to base64
+      const base64State = btoa(String.fromCharCode(...new Uint8Array(stateData)));
+
+      // Get screenshot
+      let screenshot: string | undefined;
+      try {
+        const canvas = document.querySelector('#emulator-container canvas') as HTMLCanvasElement;
+        if (canvas) {
+          screenshot = canvas.toDataURL('image/png');
+        }
+      } catch (err) {
+        console.error('Failed to capture screenshot:', err);
+      }
+
+      // Save to backend
+      await saveStateApi.createSaveState(gameId!, {
+        slot,
+        stateData: base64State,
+        screenshot,
+        description: `Quick Save Slot ${slot}`,
+      });
+
+      await loadSaveStates();
+      toast.success('Quick Saved', `Progress saved to slot ${slot} (F${slot + 4})`);
+    } catch (err: any) {
+      toast.error(err, `Failed to quick save to slot ${slot}`);
+    }
+  };
+
+  const handleQuickLoad = async (slot: number) => {
+    if (!window.EJS_emulator) {
+      toast.warning('Not Ready', 'Emulator is still loading');
+      return;
+    }
+
+    try {
+      // Find save state for this slot
+      const saveState = saveStates.find((s) => s.slot === slot);
+      if (!saveState) {
+        toast.warning('No Save Found', `Slot ${slot} is empty`);
+        return;
+      }
+
+      // Load state data from backend
+      const blob = await saveStateApi.loadSaveState(saveState.id);
+      const arrayBuffer = await blob.arrayBuffer();
+
+      // Load state into EmulatorJS
+      window.EJS_emulator.gameManager.loadState(new Uint8Array(arrayBuffer));
+
+      toast.success('Quick Loaded', `Progress restored from slot ${slot} (F${slot + 4})`);
+    } catch (err: any) {
+      toast.error(err, `Failed to quick load from slot ${slot}`);
+    }
+  };
+
   const handleDeleteState = (id: string, slot: number) => {
     setSaveStateToDelete({ id, slot });
     setShowDeleteConfirm(true);
@@ -434,6 +504,8 @@ export function EmulatorPlayer({
         <EmulatorOverlay
           onSave={() => setShowSaveMenu(true)}
           onLoad={() => setShowSaveMenu(true)}
+          onQuickSave={handleQuickSave}
+          onQuickLoad={handleQuickLoad}
           onScreenshot={handleScreenshot}
           onFullscreen={handleFullscreen}
           onExit={onExit}
@@ -441,6 +513,9 @@ export function EmulatorPlayer({
           emulatorReady={!loading && !error}
         />
       )}
+
+      {/* Touch Controls for Mobile */}
+      <TouchControls show={!loading && !error} />
 
       {/* Save/Load Menu */}
       {showSaveMenu && user && (

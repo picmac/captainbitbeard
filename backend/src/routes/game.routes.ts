@@ -55,6 +55,7 @@ router.get('/:id', gameController.getGameById.bind(gameController));
 router.get('/:id/play', gameController.getGameForPlay.bind(gameController));
 router.get('/:id/rom', gameController.streamRom.bind(gameController));
 router.get('/system/:system', gameController.getGamesBySystem.bind(gameController));
+router.post('/check-duplicate', gameController.checkDuplicate.bind(gameController));
 
 // Admin routes - require authentication and admin role
 router.use(authenticate);

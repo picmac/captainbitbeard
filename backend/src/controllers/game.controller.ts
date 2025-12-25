@@ -389,6 +389,32 @@ export class GameController {
   }
 
   /**
+   * Check if ROM with MD5 hash already exists
+   * POST /api/games/check-duplicate
+   */
+  async checkDuplicate(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const { md5Hash } = req.body as { md5Hash?: string };
+
+      if (!md5Hash) {
+        throw new AppError('MD5 hash is required', 400);
+      }
+
+      const existingGame = await gameService.findByMD5(md5Hash);
+
+      res.json({
+        status: 'success',
+        data: {
+          isDuplicate: !!existingGame,
+          existingGame: existingGame || null,
+        },
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
    * Stream ROM file directly
    * GET /api/games/:id/rom
    */

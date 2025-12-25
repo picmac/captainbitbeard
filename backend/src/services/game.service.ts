@@ -145,6 +145,26 @@ export class GameService {
   }
 
   /**
+   * Find game by MD5 hash (for duplicate detection)
+   */
+  async findByMD5(md5Hash: string): Promise<Game | null> {
+    const gameMetadata = await prisma.gameMetadata.findFirst({
+      where: {
+        md5Hash: md5Hash.toLowerCase(),
+      },
+      include: {
+        game: {
+          include: {
+            metadata: true,
+          },
+        },
+      },
+    });
+
+    return gameMetadata?.game || null;
+  }
+
+  /**
    * Get game by ID with ROM download URL
    */
   async getGameWithDownloadUrl(id: string): Promise<GameWithUrls | null> {
