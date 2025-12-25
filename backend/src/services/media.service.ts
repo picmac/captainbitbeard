@@ -1,4 +1,4 @@
-import { PrismaClient, Screenshot, Prisma } from '@prisma/client';
+import { PrismaClient, Screenshot, Prisma, ScreenshotCategory } from '@prisma/client';
 import { minioService } from './minio.service';
 import crypto from 'crypto';
 import path from 'path';
@@ -154,7 +154,7 @@ export class MediaService {
         gameId,
         url,
         type: category || 'gameplay',
-        category: (category?.toUpperCase() || 'GAMEPLAY') as string,
+        category: (category?.toUpperCase() || 'GAMEPLAY') as ScreenshotCategory,
         caption,
         order: nextOrder,
       },
@@ -235,7 +235,7 @@ export class MediaService {
   async getScreenshotsByCategory(gameId: string, category?: string): Promise<Screenshot[]> {
     const where: Prisma.ScreenshotWhereInput = { gameId };
     if (category) {
-      where.category = category.toUpperCase();
+      where.category = category.toUpperCase() as ScreenshotCategory;
     }
 
     return prisma.screenshot.findMany({
@@ -251,7 +251,7 @@ export class MediaService {
     return prisma.screenshot.update({
       where: { id: screenshotId },
       data: {
-        ...(data.category && { category: data.category.toUpperCase() as string }),
+        ...(data.category && { category: data.category.toUpperCase() as ScreenshotCategory }),
         ...(data.caption !== undefined && { caption: data.caption }),
       },
     });

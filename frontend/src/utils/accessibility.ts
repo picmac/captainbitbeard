@@ -178,7 +178,7 @@ export const focusManagement = {
 /**
  * Color contrast checker (WCAG AA requires 4.5:1 for normal text, 3:1 for large text)
  */
-export function checkColorContrast(foreground: string, background: string): {
+export function checkColorContrast(_foreground: string, _background: string): {
   ratio: number;
   passesAA: boolean;
   passesAAA: boolean;

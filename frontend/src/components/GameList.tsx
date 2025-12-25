@@ -147,6 +147,30 @@ export function GameList({ games, onRefresh }: GameListProps) {
           </div>
         </div>
       ))}
+
+      {/* Scrape Metadata Confirmation Modal */}
+      <ConfirmationModal
+        isOpen={showScrapeConfirm}
+        onClose={() => setShowScrapeConfirm(false)}
+        onConfirm={confirmScrapeMetadata}
+        title="Fetch Metadata"
+        message={`Fetch cover and metadata for "${selectedGame?.title}"?`}
+        confirmText="FETCH"
+        cancelText="CANCEL"
+        type="info"
+      />
+
+      {/* Delete Game Confirmation Modal */}
+      <ConfirmationModal
+        isOpen={showDeleteConfirm}
+        onClose={() => setShowDeleteConfirm(false)}
+        onConfirm={confirmDelete}
+        title="Delete Game"
+        message={`Are you sure you want to delete "${selectedGame?.title}"? This action cannot be undone.`}
+        confirmText="DELETE"
+        cancelText="CANCEL"
+        type="danger"
+      />
     </div>
   );
 }

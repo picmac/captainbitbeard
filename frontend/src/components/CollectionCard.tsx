@@ -94,12 +94,10 @@ export function CollectionCard({ collection, onDelete }: CollectionCardProps) {
       {/* Delete Confirmation Modal */}
       <ConfirmationModal
         isOpen={showDeleteConfirm}
-        onClose={(e) => {
-          if (e) e.stopPropagation();
+        onClose={() => {
           setShowDeleteConfirm(false);
         }}
-        onConfirm={(e) => {
-          if (e) e.stopPropagation();
+        onConfirm={() => {
           confirmDelete();
           setShowDeleteConfirm(false);
         }}
