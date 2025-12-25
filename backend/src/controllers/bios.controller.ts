@@ -36,7 +36,8 @@ export class BiosController {
         return;
       }
 
-      const { system, description, region, version, required } = req.body;
+      const body = req.body as { system?: string; description?: string; region?: string; version?: string; required?: string };
+      const { system, description, region, version, required } = body;
 
       if (!system) {
         res.status(400).json({

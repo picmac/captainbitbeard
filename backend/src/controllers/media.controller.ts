@@ -10,6 +10,11 @@ const upload = multer({
   },
 });
 
+function getErrorMessage(error: unknown): string {
+  if (error instanceof Error) return error.message;
+  return String(error);
+}
+
 export class MediaController {
   /**
    * Upload trailer video
@@ -36,9 +41,9 @@ export class MediaController {
         message: 'Trailer uploaded successfully',
         videoUrl,
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Upload trailer error:', error);
-      res.status(500).json({ message: error.message || 'Failed to upload trailer' });
+      res.status(500).json({ message: getErrorMessage(error) || 'Failed to upload trailer' });
     }
   }
 
@@ -67,9 +72,9 @@ export class MediaController {
         message: 'Background music uploaded successfully',
         musicUrl,
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Upload background music error:', error);
-      res.status(500).json({ message: error.message || 'Failed to upload background music' });
+      res.status(500).json({ message: getErrorMessage(error) || 'Failed to upload background music' });
     }
   }
 
@@ -98,9 +103,9 @@ export class MediaController {
         message: 'Animated cover uploaded successfully',
         coverUrl,
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Upload animated cover error:', error);
-      res.status(500).json({ message: error.message || 'Failed to upload animated cover' });
+      res.status(500).json({ message: getErrorMessage(error) || 'Failed to upload animated cover' });
     }
   }
 
@@ -111,7 +116,8 @@ export class MediaController {
   async uploadCategorizedScreenshot(req: Request, res: Response): Promise<void> {
     try {
       const { gameId } = req.params;
-      const { category, caption } = req.body;
+      const body = req.body as { category?: string; caption?: string };
+      const { category, caption } = body;
       const file = req.file;
 
       if (!file) {
@@ -131,9 +137,9 @@ export class MediaController {
         message: 'Screenshot uploaded successfully',
         screenshot,
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Upload screenshot error:', error);
-      res.status(500).json({ message: error.message || 'Failed to upload screenshot' });
+      res.status(500).json({ message: getErrorMessage(error) || 'Failed to upload screenshot' });
     }
   }
 
@@ -148,9 +154,9 @@ export class MediaController {
       await mediaService.deleteTrailerVideo(gameId);
 
       res.json({ message: 'Trailer deleted successfully' });
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Delete trailer error:', error);
-      res.status(500).json({ message: error.message || 'Failed to delete trailer' });
+      res.status(500).json({ message: getErrorMessage(error) || 'Failed to delete trailer' });
     }
   }
 
@@ -165,9 +171,9 @@ export class MediaController {
       await mediaService.deleteBackgroundMusic(gameId);
 
       res.json({ message: 'Background music deleted successfully' });
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Delete background music error:', error);
-      res.status(500).json({ message: error.message || 'Failed to delete background music' });
+      res.status(500).json({ message: getErrorMessage(error) || 'Failed to delete background music' });
     }
   }
 
@@ -182,9 +188,9 @@ export class MediaController {
       await mediaService.deleteAnimatedCover(gameId);
 
       res.json({ message: 'Animated cover deleted successfully' });
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Delete animated cover error:', error);
-      res.status(500).json({ message: error.message || 'Failed to delete animated cover' });
+      res.status(500).json({ message: getErrorMessage(error) || 'Failed to delete animated cover' });
     }
   }
 
@@ -203,9 +209,9 @@ export class MediaController {
       );
 
       res.json({ screenshots });
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Get screenshots error:', error);
-      res.status(500).json({ message: error.message || 'Failed to get screenshots' });
+      res.status(500).json({ message: getErrorMessage(error) || 'Failed to get screenshots' });
     }
   }
 
@@ -216,7 +222,8 @@ export class MediaController {
   async updateScreenshot(req: Request, res: Response): Promise<void> {
     try {
       const { screenshotId } = req.params;
-      const { category, caption } = req.body;
+      const body = req.body as { category?: string; caption?: string };
+      const { category, caption } = body;
 
       const screenshot = await mediaService.updateScreenshot(screenshotId, {
         category,
@@ -227,9 +234,9 @@ export class MediaController {
         message: 'Screenshot updated successfully',
         screenshot,
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Update screenshot error:', error);
-      res.status(500).json({ message: error.message || 'Failed to update screenshot' });
+      res.status(500).json({ message: getErrorMessage(error) || 'Failed to update screenshot' });
     }
   }
 }

@@ -2,6 +2,7 @@ import { Router } from 'express';
 import multer from 'multer';
 import { biosController } from '../controllers/bios.controller';
 import { authenticate, requireAdmin } from '../middleware/auth.middleware';
+import { AuthRequest } from '../controllers/auth.controller';
 
 const router = Router();
 
@@ -53,19 +54,19 @@ router.use(authenticate);
 router.use(requireAdmin);
 
 router.post('/upload', upload.single('bios'), (req, res) =>
-  biosController.uploadBiosFile(req as any, res)
+  biosController.uploadBiosFile(req as AuthRequest, res)
 );
 
 router.patch('/:id', (req, res) =>
-  biosController.updateBiosFile(req as any, res)
+  biosController.updateBiosFile(req as AuthRequest, res)
 );
 
 router.delete('/:id', (req, res) =>
-  biosController.deleteBiosFile(req as any, res)
+  biosController.deleteBiosFile(req as AuthRequest, res)
 );
 
 router.post('/:id/verify', (req, res) =>
-  biosController.verifyBiosMd5(req as any, res)
+  biosController.verifyBiosMd5(req as AuthRequest, res)
 );
 
 export default router;
