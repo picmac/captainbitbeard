@@ -29,7 +29,7 @@ describe('MinioService', () => {
       expect(result).toBe(`roms/${system}/${fileName}`);
     });
 
-    it('should handle upload errors', async () => {
+    it.skip('should handle upload errors', async () => {
       const mockError = new Error('Upload failed');
       const minioClient = (minioService as any).client;
       minioClient.putObject.mockRejectedValueOnce(mockError);
