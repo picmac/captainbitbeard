@@ -12,6 +12,7 @@ interface EmulatorPlayerProps {
   system: string;
   romUrl: string;
   onExit?: () => void;
+  initialSaveStateId?: string | null;
 }
 
 declare global {
@@ -37,6 +38,7 @@ export function EmulatorPlayer({
   system,
   romUrl,
   onExit,
+  initialSaveStateId,
 }: EmulatorPlayerProps) {
   const { user } = useAuth();
   const containerRef = useRef<HTMLDivElement>(null);
@@ -217,8 +219,34 @@ export function EmulatorPlayer({
         setLoading(false);
         retryCountRef.current = 0;
         console.log('🎮 Emulator ready');
+
         if (user) {
           loadSaveStates();
+
+          // Auto-load initial save state if provided
+          if (initialSaveStateId) {
+            // Delay to ensure emulator is fully initialized and save states are loaded
+            setTimeout(() => {
+              const autoLoadSave = async () => {
+                try {
+                  // Load state data from backend
+                  const blob = await saveStateApi.loadSaveState(initialSaveStateId);
+                  const arrayBuffer = await blob.arrayBuffer();
+
+                  // Load state into EmulatorJS
+                  if (window.EJS_emulator?.gameManager) {
+                    window.EJS_emulator.gameManager.loadState(new Uint8Array(arrayBuffer));
+                    toast.info('Save Loaded', 'Resumed from your last save');
+                  }
+                } catch (err) {
+                  console.error('Failed to auto-load save state:', err);
+                  toast.warning('Auto-load Failed', 'Starting fresh game instead');
+                  // Continue with fresh game on error - don't block gameplay
+                }
+              };
+              autoLoadSave();
+            }, 2000); // 2 second delay to ensure emulator is fully ready
+          }
         }
       };
 

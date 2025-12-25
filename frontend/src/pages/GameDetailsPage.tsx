@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
-import { gameApi, screenshotApi, type Game, type Screenshot } from '../services/api';
+import { gameApi, screenshotApi, saveStateApi, type Game, type Screenshot } from '../services/api';
 import { GameMetadataDisplay } from '../components/GameMetadataDisplay';
 import { FavoriteButton } from '../components/FavoriteButton';
 import { AddToCollectionModal } from '../components/AddToCollectionModal';
@@ -30,6 +30,10 @@ export function GameDetailsPage() {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [showScrapeConfirm, setShowScrapeConfirm] = useState(false);
 
+  // Save states for Continue button
+  const [hasSaveStates, setHasSaveStates] = useState(false);
+  const [loadingHasSaves, setLoadingHasSaves] = useState(true);
+
   useEffect(() => {
     if (!gameId) {
       navigate('/library');
@@ -37,6 +41,27 @@ export function GameDetailsPage() {
     }
     loadGame();
   }, [gameId]);
+
+  // Check if user has save states for this game
+  useEffect(() => {
+    const checkSaveStates = async () => {
+      if (!user || !gameId) {
+        setLoadingHasSaves(false);
+        return;
+      }
+
+      try {
+        const response = await saveStateApi.getSaveStatesByGame(gameId);
+        setHasSaveStates(response.data.saveStates.length > 0);
+      } catch (err) {
+        console.error('Failed to check save states:', err);
+      } finally {
+        setLoadingHasSaves(false);
+      }
+    };
+
+    checkSaveStates();
+  }, [gameId, user]);
 
   const loadGame = async () => {
     if (!gameId) return;
@@ -69,6 +94,12 @@ export function GameDetailsPage() {
   const handlePlay = () => {
     if (game) {
       navigate(`/play/${game.id}`);
+    }
+  };
+
+  const handleContinue = () => {
+    if (game) {
+      navigate(`/play/${game.id}?loadLatest=true`);
     }
   };
 
@@ -179,8 +210,19 @@ export function GameDetailsPage() {
 
         {/* Action Buttons */}
         <div className="mt-6 flex flex-wrap gap-3 justify-center">
-          <button onClick={handlePlay} className="btn-retro bg-treasure-green">
-            ▶ PLAY GAME
+          {user && hasSaveStates && !loadingHasSaves && (
+            <button
+              onClick={handleContinue}
+              className="btn-retro bg-treasure-green"
+            >
+              ⚡ CONTINUE
+            </button>
+          )}
+          <button
+            onClick={handlePlay}
+            className={`btn-retro ${hasSaveStates && !loadingHasSaves ? '' : 'bg-treasure-green'}`}
+          >
+            {hasSaveStates && !loadingHasSaves ? '🆕 NEW GAME' : '▶ PLAY GAME'}
           </button>
 
           {user && (

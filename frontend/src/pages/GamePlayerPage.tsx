@@ -1,9 +1,19 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { gameApi, playHistoryApi, type Game } from '../services/api';
+import { gameApi, playHistoryApi, saveStateApi, type Game, type SaveState } from '../services/api';
 import { EmulatorPlayer } from '../components/EmulatorPlayer';
+import { SaveStateSelectionModal } from '../components/SaveStateSelectionModal';
 import { useAuth } from '../context/AuthContext';
 import { PageTitle } from '../components/PageTitle';
+
+// Helper function to get latest save state by updatedAt
+const getLatestSaveState = (saveStates: SaveState[]): SaveState | null => {
+  if (saveStates.length === 0) return null;
+  return [...saveStates].sort(
+    (a, b) =>
+      new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
+  )[0];
+};
 
 export function GamePlayerPage() {
   const { gameId } = useParams<{ gameId: string }>();
@@ -13,19 +23,27 @@ export function GamePlayerPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
+  // Save state dialog management
+  const [showSaveDialog, setShowSaveDialog] = useState(true);
+  const [saveStates, setSaveStates] = useState<SaveState[]>([]);
+  const [loadingSaves, setLoadingSaves] = useState(false);
+  const [selectedSaveStateId, setSelectedSaveStateId] = useState<string | null>(null);
+  const [startEmulator, setStartEmulator] = useState(false);
+
   useEffect(() => {
     if (!gameId) {
       navigate('/library');
       return;
     }
 
-    loadGame();
+    loadGameAndSaves();
   }, [gameId]);
 
-  const loadGame = async () => {
+  const loadGameAndSaves = async () => {
     if (!gameId) return;
 
     try {
+      // Load game data
       const response = await gameApi.getGameForPlay(gameId);
       setGame(response.data.game);
 
@@ -38,10 +56,65 @@ export function GamePlayerPage() {
           console.error('Failed to record play session:', err);
         }
       }
+
+      // Load save states if logged in
+      if (user) {
+        setLoadingSaves(true);
+        try {
+          const savesResponse = await saveStateApi.getSaveStatesByGame(gameId);
+          setSaveStates(savesResponse.data.saveStates);
+
+          // Check for loadLatest URL param (from Continue button)
+          const urlParams = new URLSearchParams(window.location.search);
+          if (urlParams.get('loadLatest') === 'true') {
+            const latest = getLatestSaveState(savesResponse.data.saveStates);
+            if (latest) {
+              setSelectedSaveStateId(latest.id);
+              setShowSaveDialog(false);
+              setStartEmulator(true);
+              setLoadingSaves(false);
+              return;
+            }
+          }
+        } catch (err) {
+          console.error('Failed to load save states:', err);
+          // On error, skip dialog and start fresh game
+          setSaveStates([]);
+          setShowSaveDialog(false);
+          setStartEmulator(true);
+        } finally {
+          setLoadingSaves(false);
+        }
+      } else {
+        // Not logged in - skip dialog, start fresh
+        setShowSaveDialog(false);
+        setStartEmulator(true);
+      }
     } catch (err: any) {
       setError(err.response?.data?.message || 'Failed to load game');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleSelectSave = (saveState: SaveState) => {
+    setSelectedSaveStateId(saveState.id);
+    setShowSaveDialog(false);
+    setStartEmulator(true);
+  };
+
+  const handleNewGame = () => {
+    setSelectedSaveStateId(null);
+    setShowSaveDialog(false);
+    setStartEmulator(true);
+  };
+
+  const handleLoadLatest = () => {
+    const latest = getLatestSaveState(saveStates);
+    if (latest) {
+      handleSelectSave(latest);
+    } else {
+      handleNewGame();
     }
   };
 
@@ -91,17 +164,37 @@ export function GamePlayerPage() {
   return (
     <>
       <PageTitle
-        title={`Playing ${game.title}`}
-        description={`Now playing ${game.title} for ${game.system}`}
+        title={game ? `Playing ${game.title}` : 'Loading Game'}
+        description={game ? `Now playing ${game.title} for ${game.system}` : 'Loading game...'}
       />
-      <h1 className="sr-only">Playing {game.title}</h1>
-      <EmulatorPlayer
-        gameId={game.id}
-        gameTitle={game.title}
-        system={game.system}
-        romUrl={game.romDownloadUrl}
-        onExit={handleExit}
-      />
+      {game && <h1 className="sr-only">Playing {game.title}</h1>}
+
+      {/* Save Selection Dialog */}
+      {!loading && !error && showSaveDialog && user && game && (
+        <SaveStateSelectionModal
+          isOpen={showSaveDialog}
+          gameTitle={game.title}
+          system={game.system}
+          saveStates={saveStates}
+          loading={loadingSaves}
+          onSelectSave={handleSelectSave}
+          onNewGame={handleNewGame}
+          onLoadLatest={handleLoadLatest}
+          onClose={() => navigate('/library')}
+        />
+      )}
+
+      {/* Emulator - only render after dialog dismissed */}
+      {!loading && !error && startEmulator && game && (
+        <EmulatorPlayer
+          gameId={game.id}
+          gameTitle={game.title}
+          system={game.system}
+          romUrl={game.romDownloadUrl}
+          initialSaveStateId={selectedSaveStateId}
+          onExit={handleExit}
+        />
+      )}
     </>
   );
 }
