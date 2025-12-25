@@ -2,6 +2,7 @@ import { Router } from 'express';
 import multer from 'multer';
 import { gameVersionController } from '../controllers/gameversion.controller';
 import { authenticate, requireAdmin } from '../middleware/auth.middleware';
+import { AuthRequest } from '../controllers/auth.controller';
 
 const router = Router();
 
@@ -27,15 +28,15 @@ router.use(authenticate);
 router.use(requireAdmin);
 
 router.post('/:gameId', upload.single('rom'), (req, res) =>
-  gameVersionController.createGameVersion(req as any, res)
+  gameVersionController.createGameVersion(req as AuthRequest, res)
 );
 
 router.patch('/:gameId/:versionId/preferred', (req, res) =>
-  gameVersionController.setPreferredVersion(req as any, res)
+  gameVersionController.setPreferredVersion(req as AuthRequest, res)
 );
 
 router.delete('/:gameId/:versionId', (req, res) =>
-  gameVersionController.deleteGameVersion(req as any, res)
+  gameVersionController.deleteGameVersion(req as AuthRequest, res)
 );
 
 export default router;

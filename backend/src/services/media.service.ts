@@ -1,4 +1,4 @@
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient, Screenshot, Prisma } from '@prisma/client';
 import { minioService } from './minio.service';
 import crypto from 'crypto';
 import path from 'path';
@@ -120,7 +120,7 @@ export class MediaService {
   /**
    * Upload categorized screenshot
    */
-  async uploadCategorizedScreenshot(options: UploadScreenshotOptions): Promise<any> {
+  async uploadCategorizedScreenshot(options: UploadScreenshotOptions): Promise<Screenshot> {
     const { gameId, file, fileName, category, caption } = options;
 
     // Validate image file extension
@@ -154,7 +154,7 @@ export class MediaService {
         gameId,
         url,
         type: category || 'gameplay',
-        category: category?.toUpperCase() as any || 'GAMEPLAY',
+        category: (category?.toUpperCase() || 'GAMEPLAY') as string,
         caption,
         order: nextOrder,
       },
@@ -232,8 +232,8 @@ export class MediaService {
   /**
    * Get screenshots by category
    */
-  async getScreenshotsByCategory(gameId: string, category?: string): Promise<any[]> {
-    const where: any = { gameId };
+  async getScreenshotsByCategory(gameId: string, category?: string): Promise<Screenshot[]> {
+    const where: Prisma.ScreenshotWhereInput = { gameId };
     if (category) {
       where.category = category.toUpperCase();
     }
@@ -247,11 +247,11 @@ export class MediaService {
   /**
    * Update screenshot category and caption
    */
-  async updateScreenshot(screenshotId: string, data: { category?: string; caption?: string }): Promise<any> {
+  async updateScreenshot(screenshotId: string, data: { category?: string; caption?: string }): Promise<Screenshot> {
     return prisma.screenshot.update({
       where: { id: screenshotId },
       data: {
-        ...(data.category && { category: data.category.toUpperCase() as any }),
+        ...(data.category && { category: data.category.toUpperCase() as string }),
         ...(data.caption !== undefined && { caption: data.caption }),
       },
     });

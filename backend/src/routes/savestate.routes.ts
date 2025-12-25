@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { saveStateController } from '../controllers/savestate.controller';
 import { authenticate } from '../middleware/auth.middleware';
+import { AuthRequest } from '../controllers/auth.controller';
 
 const router = Router();
 
@@ -9,37 +10,37 @@ router.use(authenticate);
 
 // Get all save states for current user (across all games)
 router.get('/my-saves', (req, res) =>
-  saveStateController.getMySaveStates(req as any, res)
+  saveStateController.getMySaveStates(req as AuthRequest, res)
 );
 
 // Get all save states for a specific game
 router.get('/game/:gameId', (req, res) =>
-  saveStateController.getSaveStatesByGame(req as any, res)
+  saveStateController.getSaveStatesByGame(req as AuthRequest, res)
 );
 
 // Create or update save state for a game
 router.post('/game/:gameId', (req, res) =>
-  saveStateController.createSaveState(req as any, res)
+  saveStateController.createSaveState(req as AuthRequest, res)
 );
 
 // Get specific save state by ID
 router.get('/:id', (req, res) =>
-  saveStateController.getSaveStateById(req as any, res)
+  saveStateController.getSaveStateById(req as AuthRequest, res)
 );
 
 // Load save state data (download file)
 router.get('/:id/load', (req, res) =>
-  saveStateController.loadSaveState(req as any, res)
+  saveStateController.loadSaveState(req as AuthRequest, res)
 );
 
 // Update save state
 router.patch('/:id', (req, res) =>
-  saveStateController.updateSaveState(req as any, res)
+  saveStateController.updateSaveState(req as AuthRequest, res)
 );
 
 // Delete save state
 router.delete('/:id', (req, res) =>
-  saveStateController.deleteSaveState(req as any, res)
+  saveStateController.deleteSaveState(req as AuthRequest, res)
 );
 
 export default router;

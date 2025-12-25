@@ -211,7 +211,7 @@ export class GameService {
     } = options;
 
     // Build the where clause for full-text search
-    const where: any = {};
+    const where: Prisma.GameWhereInput = {};
 
     // Full-text search across multiple fields
     if (query && query.trim()) {
