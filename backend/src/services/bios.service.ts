@@ -1,5 +1,5 @@
 import { PrismaClient, BiosFile } from '@prisma/client';
-import { minioClient } from '../config/minio';
+import { minioService } from './minio.service';
 import crypto from 'crypto';
 
 const prisma = new PrismaClient();
@@ -44,8 +44,11 @@ export class BiosService {
     }
 
     // Upload to MinIO
-    const filePath = `bios/${data.system.toLowerCase()}/${data.fileName}`;
-    await minioClient.putObject('games', filePath, data.fileBuffer);
+    const filePath = await minioService.uploadBios(
+      data.system.toLowerCase(),
+      data.fileName,
+      data.fileBuffer
+    );
 
     return prisma.biosFile.create({
       data: {
@@ -113,7 +116,7 @@ export class BiosService {
 
     // Delete from MinIO
     try {
-      await minioClient.removeObject('games', biosFile.filePath);
+      await minioService.deleteFile(biosFile.filePath);
     } catch (error) {
       console.error('Error deleting BIOS from MinIO:', error);
     }
@@ -134,7 +137,9 @@ export class BiosService {
     }
 
     // Generate presigned URL (valid for 1 hour)
-    return await minioClient.presignedGetObject('games', biosFile.filePath, 60 * 60);
+    // Use backend streaming endpoint instead
+    const backendUrl = process.env.BACKEND_URL || 'http://localhost:3001';
+    return `${backendUrl}/api/bios/${id}/download`;
   }
 
   /**

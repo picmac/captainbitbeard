@@ -267,7 +267,7 @@ describe('GameService', () => {
   });
 
   describe('getSupportedSystems', () => {
-    it('should return systems with game counts', async () => {
+    it('should return systems with game counts and metadata', async () => {
       const mockSystems = [
         { system: 'nes', _count: { system: 10 } },
         { system: 'snes', _count: { system: 5 } },
@@ -277,10 +277,36 @@ describe('GameService', () => {
 
       const result = await gameService.getSupportedSystems();
 
-      expect(result).toEqual([
-        { system: 'nes', count: 10 },
-        { system: 'snes', count: 5 },
-      ]);
+      // Should return all 48 supported systems
+      expect(result.length).toBeGreaterThan(40);
+
+      // Check that NES system has correct data
+      const nesSystem = result.find(s => s.id === 'nes');
+      expect(nesSystem).toMatchObject({
+        id: 'nes',
+        name: 'Nintendo Entertainment System',
+        manufacturer: 'Nintendo',
+        core: 'fceumm',
+        biosRequired: false,
+        count: 10,
+      });
+      expect(nesSystem?.extensions).toContain('nes');
+
+      // Check that SNES system has correct data
+      const snesSystem = result.find(s => s.id === 'snes');
+      expect(snesSystem).toMatchObject({
+        id: 'snes',
+        name: 'Super Nintendo',
+        manufacturer: 'Nintendo',
+        core: 'snes9x',
+        biosRequired: false,
+        count: 5,
+      });
+      expect(snesSystem?.extensions).toContain('sfc');
+
+      // Check that systems with no games have count of 0
+      const n64System = result.find(s => s.id === 'n64');
+      expect(n64System?.count).toBe(0);
     });
   });
 });

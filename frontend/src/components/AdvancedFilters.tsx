@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { SUPPORTED_SYSTEMS } from '../constants/systems';
 
 export interface FilterObject {
   systems: string[];
@@ -16,20 +17,12 @@ interface AdvancedFiltersProps {
 export function AdvancedFilters({ filters, onFiltersChange }: AdvancedFiltersProps) {
   const [isOpen, setIsOpen] = useState(false);
 
-  const allSystems = [
-    { value: 'nes', label: 'NES' },
-    { value: 'snes', label: 'SNES' },
-    { value: 'gb', label: 'Game Boy' },
-    { value: 'gbc', label: 'GBC' },
-    { value: 'gba', label: 'GBA' },
-    { value: 'n64', label: 'N64' },
-    { value: 'nds', label: 'NDS' },
-    { value: 'genesis', label: 'Genesis' },
-    { value: 'sms', label: 'SMS' },
-    { value: 'gg', label: 'Game Gear' },
-    { value: 'psx', label: 'PSX' },
-    { value: 'psp', label: 'PSP' },
-  ];
+  // Convert all systems to filter format
+  const allSystems = SUPPORTED_SYSTEMS.map(sys => ({
+    value: sys.id,
+    label: sys.name,
+    manufacturer: sys.manufacturer,
+  }));
 
   const genres = [
     'Action',

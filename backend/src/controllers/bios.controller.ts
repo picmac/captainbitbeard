@@ -74,7 +74,7 @@ export class BiosController {
    * Get all BIOS files
    * GET /api/bios
    */
-  async getAllBiosFiles(req: Request, res: Response): Promise<void> {
+  async getAllBiosFiles(_req: Request, res: Response): Promise<void> {
     try {
       const biosFiles = await biosService.getAllBiosFiles();
 
@@ -220,7 +220,7 @@ export class BiosController {
    * Get systems that require BIOS files
    * GET /api/bios/systems/requiring-bios
    */
-  async getSystemsRequiringBios(req: Request, res: Response): Promise<void> {
+  async getSystemsRequiringBios(_req: Request, res: Response): Promise<void> {
     try {
       const systems = biosService.getSystemsRequiringBios();
 

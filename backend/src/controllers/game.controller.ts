@@ -404,19 +404,60 @@ export class GameController {
       // Import minioService here to avoid circular dependency
       const { minioService } = await import('../services/minio.service');
 
-      // Get ROM stream from MinIO
-      const romStream = await minioService.streamRom(game.romPath);
-
-      // Set headers for ROM download
+      // Get file metadata
       const fileName = game.romPath.split('/').pop() || 'game.rom';
-      res.setHeader('Content-Type', 'application/octet-stream');
-      res.setHeader('Content-Disposition', `attachment; filename="${fileName}"`);
-      res.setHeader('Access-Control-Allow-Origin', '*');
-      res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
-      res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+      const fileSize = game.metadata?.fileSize ? Number(game.metadata.fileSize) : 0;
+      const etag = game.metadata?.md5Hash || `"${game.id}"`;
 
-      // Pipe the stream to response
-      romStream.pipe(res);
+      // Check If-None-Match for 304 Not Modified
+      const ifNoneMatch = req.headers['if-none-match'];
+      if (ifNoneMatch === etag) {
+        res.status(304).end();
+        return;
+      }
+
+      // Set caching headers
+      res.setHeader('ETag', etag);
+      res.setHeader('Cache-Control', 'public, max-age=31536000, immutable'); // 1 year
+      res.setHeader('Last-Modified', game.createdAt.toUTCString());
+      res.setHeader('Content-Type', 'application/octet-stream');
+      res.setHeader('Accept-Ranges', 'bytes');
+      res.setHeader('Access-Control-Allow-Origin', '*');
+      res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS, HEAD');
+      res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, Range');
+      res.setHeader('Access-Control-Expose-Headers', 'Content-Range, Content-Length, ETag');
+
+      // Handle Range requests for resumable downloads
+      const range = req.headers.range;
+      if (range && fileSize > 0) {
+        const parts = range.replace(/bytes=/, '').split('-');
+        const start = parseInt(parts[0], 10);
+        const end = parts[1] ? parseInt(parts[1], 10) : fileSize - 1;
+        const chunkSize = end - start + 1;
+
+        // Validate range
+        if (start >= fileSize || end >= fileSize) {
+          res.status(416).setHeader('Content-Range', `bytes */${fileSize}`).end();
+          return;
+        }
+
+        // Get partial stream from MinIO
+        const romStream = await minioService.streamRomRange(game.romPath, start, end);
+
+        res.status(206);
+        res.setHeader('Content-Range', `bytes ${start}-${end}/${fileSize}`);
+        res.setHeader('Content-Length', chunkSize.toString());
+        romStream.pipe(res);
+      } else {
+        // Full file streaming
+        const romStream = await minioService.streamRom(game.romPath);
+
+        if (fileSize > 0) {
+          res.setHeader('Content-Length', fileSize.toString());
+        }
+        res.setHeader('Content-Disposition', `attachment; filename="${fileName}"`);
+        romStream.pipe(res);
+      }
     } catch (error) {
       next(error);
     }

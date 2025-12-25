@@ -1,5 +1,7 @@
 import { useState, useEffect } from 'react';
 import { type GameVersion, gameVersionApi } from '../services/api';
+import { toast } from '../utils/toast';
+import { ConfirmationModal } from './ConfirmationModal';
 
 interface GameVersionManagerProps {
   gameId: string;
@@ -19,6 +21,10 @@ export function GameVersionManager({ gameId, isAdmin = false }: GameVersionManag
   const [changes, setChanges] = useState('');
   const [isPreferred, setIsPreferred] = useState(false);
   const [romFile, setRomFile] = useState<File | null>(null);
+
+  // Confirmation modal state
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [versionToDelete, setVersionToDelete] = useState<{ id: string; name: string } | null>(null);
 
   const regions = ['USA', 'EUR', 'JPN', 'KOR', 'CHN', 'BRA', 'AUS', 'WORLD', 'UNK'];
 
@@ -41,7 +47,7 @@ export function GameVersionManager({ gameId, isAdmin = false }: GameVersionManag
     e.preventDefault();
 
     if (!romFile) {
-      alert('Please select a ROM file');
+      toast.warning('No File Selected', 'Please select a ROM file');
       return;
     }
 
@@ -58,13 +64,13 @@ export function GameVersionManager({ gameId, isAdmin = false }: GameVersionManag
 
       await gameVersionApi.createGameVersion(gameId, formData);
 
-      alert('✅ Version uploaded successfully!');
+      toast.success('Version Uploaded', 'ROM version uploaded successfully');
       setShowUploadForm(false);
       resetForm();
       loadVersions();
     } catch (error) {
       console.error('Failed to upload version:', error);
-      alert('❌ Failed to upload version');
+      toast.error(error, 'Failed to upload version');
     } finally {
       setUploading(false);
     }
@@ -73,26 +79,29 @@ export function GameVersionManager({ gameId, isAdmin = false }: GameVersionManag
   const handleSetPreferred = async (versionId: string) => {
     try {
       await gameVersionApi.setPreferredVersion(gameId, versionId);
-      alert('✅ Preferred version set!');
+      toast.success('Preferred Version Set', 'This version is now preferred');
       loadVersions();
     } catch (error) {
       console.error('Failed to set preferred version:', error);
-      alert('❌ Failed to set preferred version');
+      toast.error(error, 'Failed to set preferred version');
     }
   };
 
-  const handleDeleteVersion = async (versionId: string, versionName: string) => {
-    if (!confirm(`Delete version "${versionName}"? This cannot be undone!`)) {
-      return;
-    }
+  const handleDeleteVersion = (versionId: string, versionName: string) => {
+    setVersionToDelete({ id: versionId, name: versionName });
+    setShowDeleteConfirm(true);
+  };
+
+  const confirmDeleteVersion = async () => {
+    if (!versionToDelete) return;
 
     try {
-      await gameVersionApi.deleteGameVersion(gameId, versionId);
-      alert('✅ Version deleted successfully!');
+      await gameVersionApi.deleteGameVersion(gameId, versionToDelete.id);
+      toast.success('Version Deleted', `${versionToDelete.name} has been removed`);
       loadVersions();
     } catch (error) {
       console.error('Failed to delete version:', error);
-      alert('❌ Failed to delete version');
+      toast.error(error, 'Failed to delete version');
     }
   };
 
@@ -303,6 +312,17 @@ export function GameVersionManager({ gameId, isAdmin = false }: GameVersionManag
           ))}
         </div>
       )}
+
+      {/* Confirmation Modal */}
+      <ConfirmationModal
+        isOpen={showDeleteConfirm}
+        onClose={() => setShowDeleteConfirm(false)}
+        onConfirm={confirmDeleteVersion}
+        title="Delete Version"
+        message={`Delete version "${versionToDelete?.name}"? This action cannot be undone.`}
+        confirmText="DELETE"
+        type="danger"
+      />
     </div>
   );
 }

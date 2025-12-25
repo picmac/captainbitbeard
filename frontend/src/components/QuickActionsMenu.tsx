@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import { gameApi, type Game } from '../services/api';
 import { AddToCollectionModal } from './AddToCollectionModal';
+import { toast } from '../utils/toast';
+import { ConfirmationModal } from './ConfirmationModal';
 
 interface QuickActionsMenuProps {
   selectedGames: Game[];
@@ -16,6 +18,8 @@ export function QuickActionsMenu({
   const [isOpen, setIsOpen] = useState(false);
   const [showAddToCollection, setShowAddToCollection] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [showScrapeConfirm, setShowScrapeConfirm] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   if (selectedGames.length === 0) {
     return null;
@@ -25,12 +29,13 @@ export function QuickActionsMenu({
     setShowAddToCollection(true);
   };
 
-  const handleBulkScrapeMetadata = async () => {
-    if (!confirm(`Fetch metadata for ${selectedGames.length} games? This may take a while.`)) {
-      return;
-    }
+  const handleBulkScrapeMetadata = () => {
+    setShowScrapeConfirm(true);
+  };
 
+  const confirmBulkScrapeMetadata = async () => {
     setLoading(true);
+    setShowScrapeConfirm(false);
     let successCount = 0;
     let errorCount = 0;
 
@@ -44,17 +49,22 @@ export function QuickActionsMenu({
     }
 
     setLoading(false);
-    alert(`✅ Metadata fetched for ${successCount} games. ${errorCount > 0 ? `❌ ${errorCount} failed.` : ''}`);
+    if (errorCount > 0) {
+      toast.warning('Partially Completed', `Metadata fetched for ${successCount} games. ${errorCount} failed.`);
+    } else {
+      toast.success('Metadata Fetched', `Updated metadata for ${successCount} games`);
+    }
     onRefresh();
     onClearSelection();
   };
 
-  const handleBulkDelete = async () => {
-    if (!confirm(`⚠️ DELETE ${selectedGames.length} GAMES? This cannot be undone!`)) {
-      return;
-    }
+  const handleBulkDelete = () => {
+    setShowDeleteConfirm(true);
+  };
 
+  const confirmBulkDelete = async () => {
     setLoading(true);
+    setShowDeleteConfirm(false);
     let successCount = 0;
     let errorCount = 0;
 
@@ -68,7 +78,11 @@ export function QuickActionsMenu({
     }
 
     setLoading(false);
-    alert(`✅ Deleted ${successCount} games. ${errorCount > 0 ? `❌ ${errorCount} failed.` : ''}`);
+    if (errorCount > 0) {
+      toast.warning('Partially Deleted', `Deleted ${successCount} games. ${errorCount} failed.`);
+    } else {
+      toast.success('Games Deleted', `Deleted ${successCount} games`);
+    }
     onRefresh();
     onClearSelection();
   };
@@ -153,6 +167,39 @@ export function QuickActionsMenu({
           bulkGameIds={selectedGames.map(g => g.id)}
         />
       )}
+
+      {/* Confirmation Modals */}
+      <ConfirmationModal
+        isOpen={showScrapeConfirm}
+        onClose={() => setShowScrapeConfirm(false)}
+        onConfirm={confirmBulkScrapeMetadata}
+        title="Fetch Metadata"
+        message={`Fetch metadata for ${selectedGames.length} games? This may take a while depending on the number of games.`}
+        confirmText="FETCH"
+        type="info"
+      />
+
+      <ConfirmationModal
+        isOpen={showDeleteConfirm}
+        onClose={() => setShowDeleteConfirm(false)}
+        onConfirm={confirmBulkDelete}
+        title="Delete Games"
+        message={`Delete ${selectedGames.length} games? This action cannot be undone.`}
+        confirmText="DELETE ALL"
+        type="danger"
+      >
+        <div className="text-pixel text-sm text-center">
+          <p className="text-xs text-wood-brown mb-2">Games to be deleted:</p>
+          <ul className="text-[8px] text-left space-y-1 max-h-32 overflow-y-auto">
+            {selectedGames.slice(0, 10).map(game => (
+              <li key={game.id}>• {game.title}</li>
+            ))}
+            {selectedGames.length > 10 && (
+              <li className="text-wood-brown italic">... and {selectedGames.length - 10} more</li>
+            )}
+          </ul>
+        </div>
+      </ConfirmationModal>
     </>
   );
 }

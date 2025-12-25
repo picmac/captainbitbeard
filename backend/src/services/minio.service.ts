@@ -238,6 +238,24 @@ export class MinioService {
   }
 
   /**
+   * Stream ROM file with range support (for HTTP 206 partial content)
+   */
+  async streamRomRange(romPath: string, start: number, end: number): Promise<Readable> {
+    try {
+      const stream = await this.client.getPartialObject(
+        this.bucket,
+        romPath,
+        start,
+        end - start + 1
+      );
+      return stream;
+    } catch (error) {
+      logger.error({ err: error }, `Failed to stream ROM range: ${romPath} [${start}-${end}]`);
+      throw error;
+    }
+  }
+
+  /**
    * Delete file
    */
   async deleteFile(objectName: string): Promise<void> {
@@ -316,6 +334,54 @@ export class MinioService {
         resolve(files);
       });
     });
+  }
+
+  /**
+   * Upload generic file (for controllers that need direct upload)
+   */
+  async uploadFile(
+    fileStream: Readable | Buffer,
+    objectName: string,
+    size: number,
+    contentType: string = 'application/octet-stream'
+  ): Promise<string> {
+    try {
+      await this.client.putObject(
+        this.bucket,
+        objectName,
+        fileStream,
+        size,
+        {
+          'Content-Type': contentType,
+        }
+      );
+
+      logger.info(`File uploaded: ${objectName}`);
+      return objectName;
+    } catch (error) {
+      logger.error({ err: error }, `Failed to upload file: ${objectName}`);
+      throw error;
+    }
+  }
+
+  /**
+   * Get file URL (alias for getPublicUrl for backward compatibility)
+   */
+  getFileUrl(objectName: string): string {
+    return this.getPublicUrl(objectName);
+  }
+
+  /**
+   * Get file from MinIO (returns stream)
+   */
+  async getFile(objectName: string): Promise<Readable> {
+    try {
+      const stream = await this.client.getObject(this.bucket, objectName);
+      return stream;
+    } catch (error) {
+      logger.error({ err: error }, `Failed to get file: ${objectName}`);
+      throw error;
+    }
   }
 }
 

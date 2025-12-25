@@ -20,6 +20,8 @@ export interface Game {
   backgroundUrl?: string | null;
   logoUrl?: string | null;
   videoUrl?: string | null;
+  backgroundMusicUrl?: string | null;
+  animatedCoverUrl?: string | null;
   description?: string;
   releaseDate?: string;
   developer?: string;
@@ -721,6 +723,8 @@ export interface Screenshot {
   gameId: string;
   url: string;
   type: string;
+  category?: string;
+  caption?: string;
   order: number;
   createdAt: string;
 }
@@ -1169,6 +1173,122 @@ export const biosApi = {
   // Verify BIOS MD5 hash
   verifyBiosMd5: async (id: string, expectedMd5: string): Promise<{ status: string; data: { isValid: boolean } }> => {
     const response = await api.post(`/bios/${id}/verify`, { expectedMd5 });
+    return response.data;
+  },
+};
+
+// Media API
+export const mediaApi = {
+  // Upload trailer video
+  uploadTrailer: async (gameId: string, videoFile: File) => {
+    const formData = new FormData();
+    formData.append('video', videoFile);
+
+    const token = localStorage.getItem('token');
+    const response = await api.post(`/media/games/${gameId}/media/trailer`, formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+        Authorization: `Bearer ${token}`,
+      },
+    });
+    return response.data;
+  },
+
+  // Upload background music
+  uploadBackgroundMusic: async (gameId: string, musicFile: File) => {
+    const formData = new FormData();
+    formData.append('music', musicFile);
+
+    const token = localStorage.getItem('token');
+    const response = await api.post(`/media/games/${gameId}/media/music`, formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+        Authorization: `Bearer ${token}`,
+      },
+    });
+    return response.data;
+  },
+
+  // Upload animated cover
+  uploadAnimatedCover: async (gameId: string, coverFile: File) => {
+    const formData = new FormData();
+    formData.append('cover', coverFile);
+
+    const token = localStorage.getItem('token');
+    const response = await api.post(`/media/games/${gameId}/media/animated-cover`, formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+        Authorization: `Bearer ${token}`,
+      },
+    });
+    return response.data;
+  },
+
+  // Upload categorized screenshot
+  uploadCategorizedScreenshot: async (
+    gameId: string,
+    screenshotFile: File,
+    category?: string,
+    caption?: string
+  ) => {
+    const formData = new FormData();
+    formData.append('screenshot', screenshotFile);
+    if (category) formData.append('category', category);
+    if (caption) formData.append('caption', caption);
+
+    const token = localStorage.getItem('token');
+    const response = await api.post(`/media/games/${gameId}/media/screenshot`, formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+        Authorization: `Bearer ${token}`,
+      },
+    });
+    return response.data;
+  },
+
+  // Delete trailer
+  deleteTrailer: async (gameId: string) => {
+    const token = localStorage.getItem('token');
+    const response = await api.delete(`/media/games/${gameId}/media/trailer`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    return response.data;
+  },
+
+  // Delete background music
+  deleteBackgroundMusic: async (gameId: string) => {
+    const token = localStorage.getItem('token');
+    const response = await api.delete(`/media/games/${gameId}/media/music`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    return response.data;
+  },
+
+  // Delete animated cover
+  deleteAnimatedCover: async (gameId: string) => {
+    const token = localStorage.getItem('token');
+    const response = await api.delete(`/media/games/${gameId}/media/animated-cover`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    return response.data;
+  },
+
+  // Get screenshots by category
+  getScreenshotsByCategory: async (gameId: string, category?: string) => {
+    const token = localStorage.getItem('token');
+    const params = category ? `?category=${category}` : '';
+    const response = await api.get(`/media/games/${gameId}/media/screenshots${params}`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    return response.data;
+  },
+
+  // Update screenshot metadata
+  updateScreenshot: async (screenshotId: string, data: { category?: string; caption?: string }) => {
+    const token = localStorage.getItem('token');
+    const response = await api.patch(`/media/screenshots/${screenshotId}`, data, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
     return response.data;
   },
 };

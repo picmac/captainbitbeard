@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { favoriteApi } from '../services/api';
 import { useAuth } from '../context/AuthContext';
+import { toast } from '../utils/toast';
 
 interface FavoriteButtonProps {
   gameId: string;
@@ -11,7 +12,6 @@ export function FavoriteButton({ gameId, onToggle }: FavoriteButtonProps) {
   const { user } = useAuth();
   const [isFavorited, setIsFavorited] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
 
   // Check favorite status on mount
   useEffect(() => {
@@ -34,23 +34,28 @@ export function FavoriteButton({ gameId, onToggle }: FavoriteButtonProps) {
     e.stopPropagation(); // Prevent card click
 
     if (!user) {
-      alert('Please log in to add favorites');
+      toast.warning('Login Required', 'Please log in to add favorites');
       return;
     }
 
     setLoading(true);
-    setError('');
 
     try {
       const response = await favoriteApi.toggleFavorite(gameId);
       setIsFavorited(response.data.isFavorited);
 
+      // Show subtle feedback
+      if (response.data.isFavorited) {
+        toast.success('Added to Favorites', 'Game saved to your favorites');
+      } else {
+        toast.info('Removed from Favorites', 'Game removed from favorites');
+      }
+
       if (onToggle) {
         onToggle();
       }
     } catch (err: any) {
-      setError(err.response?.data?.message || 'Failed to toggle favorite');
-      alert(`❌ ${error || 'Failed to toggle favorite'}`);
+      toast.error(err, 'Failed to update favorites');
     } finally {
       setLoading(false);
     }

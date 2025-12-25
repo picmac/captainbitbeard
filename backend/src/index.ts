@@ -6,6 +6,7 @@ import { config } from './config';
 import { logger } from './utils/logger';
 import { errorHandler } from './middleware/error-handler';
 import { requestLogger } from './middleware/request-logger';
+import { apiLimiter } from './middleware/rate-limit';
 import { minioService } from './services/minio.service';
 import { runSetup } from './utils/setup';
 import routes from './routes';
@@ -29,11 +30,44 @@ app.use(cors({
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
-// Compression
-app.use(compression());
+// Smart compression - skip already compressed files
+app.use(compression({
+  filter: (req, res) => {
+    // Skip compression for ROM streaming endpoint
+    if (req.path.endsWith('/rom')) {
+      return false;
+    }
+
+    // Skip compression for already compressed file types
+    const contentType = res.getHeader('Content-Type') as string;
+    if (contentType) {
+      const skipTypes = [
+        'application/zip',
+        'application/x-7z-compressed',
+        'application/x-rar-compressed',
+        'application/gzip',
+        'image/jpeg',
+        'image/png',
+        'image/webp',
+        'video/',
+      ];
+      if (skipTypes.some(type => contentType.includes(type))) {
+        return false;
+      }
+    }
+
+    // Use default compression filter for everything else
+    return compression.filter(req, res);
+  },
+  threshold: 1024, // Only compress responses > 1KB
+  level: 6, // Balanced compression level (1=fastest, 9=best compression)
+}));
 
 // Request logging
 app.use(requestLogger);
+
+// Rate limiting for API routes
+app.use('/api', apiLimiter);
 
 // Health check endpoint
 app.get('/health', (_req, res) => {

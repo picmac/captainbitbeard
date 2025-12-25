@@ -1,5 +1,6 @@
 import { useState, useRef } from 'react';
 import { gameApi } from '../services/api';
+import { getSystemsByManufacturer } from '../constants/systems';
 
 interface RomUploadProps {
   onUploadComplete?: () => void;
@@ -17,20 +18,13 @@ export function RomUpload({ onUploadComplete }: RomUploadProps) {
   const [dragActive, setDragActive] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const systems = [
-    { value: 'nes', label: 'Nintendo Entertainment System (NES)' },
-    { value: 'snes', label: 'Super Nintendo (SNES)' },
-    { value: 'gb', label: 'Game Boy (GB)' },
-    { value: 'gbc', label: 'Game Boy Color (GBC)' },
-    { value: 'gba', label: 'Game Boy Advance (GBA)' },
-    { value: 'n64', label: 'Nintendo 64 (N64)' },
-    { value: 'nds', label: 'Nintendo DS (NDS)' },
-    { value: 'genesis', label: 'Sega Genesis/Mega Drive' },
-    { value: 'sms', label: 'Sega Master System' },
-    { value: 'gg', label: 'Sega Game Gear' },
-    { value: 'psx', label: 'PlayStation 1 (PSX)' },
-    { value: 'psp', label: 'PlayStation Portable (PSP)' },
-  ];
+  // Detect mobile device
+  const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
+    navigator.userAgent
+  );
+
+  // Group systems by manufacturer for organized dropdown
+  const systemsByManufacturer = getSystemsByManufacturer();
 
   const handleDrag = (e: React.DragEvent) => {
     e.preventDefault();
@@ -128,6 +122,15 @@ export function RomUpload({ onUploadComplete }: RomUploadProps) {
         </h2>
 
         <form onSubmit={handleUpload} className="space-y-4">
+          {/* Mobile Instructions */}
+          {isMobile && (
+            <div className="border-4 border-pirate-gold bg-pirate-gold/20 p-3">
+              <p className="text-pixel text-[10px] text-skull-white">
+                📱 MOBILE TIP: When selecting file, choose "Files" or "Browse" option (NOT Camera/Photos)
+              </p>
+            </div>
+          )}
+
           {/* Drag & Drop Area */}
           <div
             className={`border-4 ${
@@ -138,40 +141,28 @@ export function RomUpload({ onUploadComplete }: RomUploadProps) {
             onDragOver={handleDrag}
             onDrop={handleDrop}
           >
-            <input
-              ref={fileInputRef}
-              type="file"
-              id="rom-file"
-              name="rom-file"
-              onChange={handleFileSelect}
-              accept=".nes,.snes,.sfc,.gb,.gbc,.gba,.n64,.z64,.nds,.smd,.gen,.iso,.bin,.cue,.zip,.7z,.rar"
-              className="hidden"
-            />
+            <div className="w-full">
+              {selectedFile ? (
+                <div className="text-pixel text-sm text-ocean-dark mb-4">
+                  <p className="mb-2">📁 {selectedFile.name}</p>
+                  <p className="text-xs">
+                    {(selectedFile.size / 1024 / 1024).toFixed(2)} MB
+                  </p>
+                </div>
+              ) : (
+                <p className="text-pixel mb-4 text-sm text-ocean-dark text-center">
+                  Select your ROM file
+                </p>
+              )}
 
-            {selectedFile ? (
-              <div className="text-pixel text-sm text-ocean-dark">
-                <p className="mb-2">📁 {selectedFile.name}</p>
-                <p className="text-xs">
-                  {(selectedFile.size / 1024 / 1024).toFixed(2)} MB
-                </p>
-                <button
-                  type="button"
-                  onClick={() => fileInputRef.current?.click()}
-                  className="btn-retro mt-4 text-xs"
-                >
-                  CHANGE FILE
-                </button>
-              </div>
-            ) : (
-              <div>
-                <p className="text-pixel mb-4 text-sm text-ocean-dark">
-                  Drag & Drop ROM file here
-                </p>
-                <label htmlFor="rom-file" className="btn-retro cursor-pointer text-xs">
-                  SELECT FILE
-                </label>
-              </div>
-            )}
+              <input
+                ref={fileInputRef}
+                type="file"
+                onChange={handleFileSelect}
+                accept=".zip,.rar,.7z,.nes,.snes,.smc,.sfc,.gb,.gbc,.gba,.n64,.z64,.nds,.gen,.smd,.bin,.iso"
+                className="w-full border-4 border-wood-brown bg-sand-beige p-3 text-sm text-ocean-dark cursor-pointer file:mr-4 file:py-2 file:px-4 file:border-0 file:text-sm file:font-semibold file:bg-pirate-gold file:text-ocean-dark hover:file:bg-pirate-gold/80"
+              />
+            </div>
           </div>
 
           {/* Title */}
@@ -205,10 +196,14 @@ export function RomUpload({ onUploadComplete }: RomUploadProps) {
               className="w-full border-4 border-wood-brown bg-sand-beige p-3 text-sm text-ocean-dark"
             >
               <option value="">Select system...</option>
-              {systems.map((s) => (
-                <option key={s.value} value={s.value}>
-                  {s.label}
-                </option>
+              {Array.from(systemsByManufacturer.entries()).map(([manufacturer, systems]) => (
+                <optgroup key={manufacturer} label={manufacturer}>
+                  {systems.map((s) => (
+                    <option key={s.id} value={s.id}>
+                      {s.name}
+                    </option>
+                  ))}
+                </optgroup>
               ))}
             </select>
           </div>

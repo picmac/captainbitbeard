@@ -12,6 +12,7 @@ import adminRoutes from './admin.routes';
 import savedSearchRoutes from './savedsearch.routes';
 import gameVersionRoutes from './gameversion.routes';
 import biosRoutes from './bios.routes';
+import mediaRoutes from './media.routes';
 
 const router = Router();
 
@@ -38,5 +39,6 @@ router.use('/admin', adminRoutes);
 router.use('/saved-searches', savedSearchRoutes);
 router.use('/game-versions', gameVersionRoutes);
 router.use('/bios', biosRoutes);
+router.use('/media', mediaRoutes);
 
 export default router;

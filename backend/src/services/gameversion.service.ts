@@ -1,5 +1,5 @@
 import { PrismaClient, GameVersion, GameRegion } from '@prisma/client';
-import { minioClient } from '../config/minio';
+import { minioService } from './minio.service';
 import crypto from 'crypto';
 
 const prisma = new PrismaClient();
@@ -26,7 +26,7 @@ export class GameVersionService {
 
     // Upload ROM to MinIO
     const romPath = `roms/versions/${data.gameId}/${data.versionName}-${Date.now()}.rom`;
-    await minioClient.putObject('games', romPath, data.romBuffer);
+    await minioService.uploadFile(data.romBuffer, romPath, data.romBuffer.length, 'application/octet-stream');
 
     // If this is marked as preferred, unset other preferred versions
     if (data.isPreferred) {
@@ -107,7 +107,7 @@ export class GameVersionService {
 
     // Delete ROM from MinIO
     try {
-      await minioClient.removeObject('games', version.romPath);
+      await minioService.deleteFile(version.romPath);
     } catch (error) {
       console.error('Error deleting ROM from MinIO:', error);
     }
@@ -128,7 +128,9 @@ export class GameVersionService {
     }
 
     // Generate presigned URL (valid for 1 hour)
-    return await minioClient.presignedGetObject('games', version.romPath, 60 * 60);
+    // Use backend streaming endpoint instead
+    const backendUrl = process.env.BACKEND_URL || 'http://localhost:3001';
+    return `${backendUrl}/api/game-versions/${id}/download`;
   }
 }
 

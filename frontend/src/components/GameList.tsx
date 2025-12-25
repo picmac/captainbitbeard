@@ -1,6 +1,9 @@
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { gameApi, type Game } from '../services/api';
 import { FavoriteButton } from './FavoriteButton';
+import { toast } from '../utils/toast';
+import { ConfirmationModal } from './ConfirmationModal';
 
 interface GameListProps {
   games: Game[];
@@ -9,6 +12,9 @@ interface GameListProps {
 
 export function GameList({ games, onRefresh }: GameListProps) {
   const navigate = useNavigate();
+  const [showScrapeConfirm, setShowScrapeConfirm] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [selectedGame, setSelectedGame] = useState<Game | null>(null);
 
   const handleViewDetails = (gameId: string) => {
     navigate(`/game/${gameId}`);
@@ -19,35 +25,39 @@ export function GameList({ games, onRefresh }: GameListProps) {
     navigate(`/play/${gameId}`);
   };
 
-  const handleScrapeMetadata = async (e: React.MouseEvent, game: Game) => {
+  const handleScrapeMetadata = (e: React.MouseEvent, game: Game) => {
     e.stopPropagation();
+    setSelectedGame(game);
+    setShowScrapeConfirm(true);
+  };
 
-    if (!confirm(`Fetch metadata and cover for "${game.title}"?`)) {
-      return;
-    }
-
+  const confirmScrapeMetadata = async () => {
+    if (!selectedGame) return;
+    setShowScrapeConfirm(false);
     try {
-      await gameApi.scrapeMetadata(game.id);
-      alert(`✅ Metadata fetched successfully for ${game.title}!`);
+      await gameApi.scrapeMetadata(selectedGame.id);
+      toast.success('Metadata Fetched', `Updated metadata for ${selectedGame.title}`);
       onRefresh();
     } catch (error) {
-      alert(`❌ Failed to fetch metadata: ${error}`);
+      toast.error(error, 'Failed to fetch metadata');
     }
   };
 
-  const handleDelete = async (e: React.MouseEvent, game: Game) => {
+  const handleDelete = (e: React.MouseEvent, game: Game) => {
     e.stopPropagation();
+    setSelectedGame(game);
+    setShowDeleteConfirm(true);
+  };
 
-    if (!confirm(`Delete "${game.title}"? This cannot be undone!`)) {
-      return;
-    }
-
+  const confirmDelete = async () => {
+    if (!selectedGame) return;
+    setShowDeleteConfirm(false);
     try {
-      await gameApi.deleteGame(game.id);
-      alert(`✅ ${game.title} deleted successfully!`);
+      await gameApi.deleteGame(selectedGame.id);
+      toast.success('Game Deleted', `${selectedGame.title} has been removed`);
       onRefresh();
     } catch (error) {
-      alert(`❌ Failed to delete game: ${error}`);
+      toast.error(error, 'Failed to delete game');
     }
   };
 

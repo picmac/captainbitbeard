@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { screenshotApi } from '../services/api';
+import { toast } from '../utils/toast';
 
 interface ScreenshotUploadModalProps {
   gameId: string;
@@ -37,7 +38,7 @@ export function ScreenshotUploadModal({
     e.preventDefault();
 
     if (!selectedFile && !url.trim()) {
-      alert('Please select a file or enter a URL');
+      toast.warning('No File Selected', 'Please select a file or enter a URL');
       return;
     }
 
@@ -66,7 +67,7 @@ export function ScreenshotUploadModal({
         onClose();
       }
     } catch (err: any) {
-      alert(err.response?.data?.message || 'Failed to upload screenshot');
+      toast.error(err, 'Failed to upload screenshot');
       setUploading(false);
     }
   };

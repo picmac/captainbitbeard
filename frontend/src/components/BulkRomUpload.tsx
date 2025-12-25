@@ -1,5 +1,6 @@
 import { useState, useRef } from 'react';
 import { gameApi } from '../services/api';
+import { getSystemsByManufacturer } from '../constants/systems';
 
 interface BulkRomUploadProps {
   onUploadComplete?: () => void;
@@ -20,20 +21,13 @@ export function BulkRomUpload({ onUploadComplete }: BulkRomUploadProps) {
   const [dragActive, setDragActive] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const systems = [
-    { value: 'nes', label: 'Nintendo Entertainment System (NES)' },
-    { value: 'snes', label: 'Super Nintendo (SNES)' },
-    { value: 'gb', label: 'Game Boy (GB)' },
-    { value: 'gbc', label: 'Game Boy Color (GBC)' },
-    { value: 'gba', label: 'Game Boy Advance (GBA)' },
-    { value: 'n64', label: 'Nintendo 64 (N64)' },
-    { value: 'nds', label: 'Nintendo DS (NDS)' },
-    { value: 'genesis', label: 'Sega Genesis/Mega Drive' },
-    { value: 'sms', label: 'Sega Master System' },
-    { value: 'gg', label: 'Sega Game Gear' },
-    { value: 'psx', label: 'PlayStation 1 (PSX)' },
-    { value: 'psp', label: 'PlayStation Portable (PSP)' },
-  ];
+  // Detect mobile device
+  const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
+    navigator.userAgent
+  );
+
+  // Group systems by manufacturer for organized dropdown
+  const systemsByManufacturer = getSystemsByManufacturer();
 
   const handleDrag = (e: React.DragEvent) => {
     e.preventDefault();
@@ -121,6 +115,15 @@ export function BulkRomUpload({ onUploadComplete }: BulkRomUploadProps) {
         </h2>
 
         <form onSubmit={handleUpload} className="space-y-4">
+          {/* Mobile Instructions */}
+          {isMobile && (
+            <div className="border-4 border-pirate-gold bg-pirate-gold/20 p-3">
+              <p className="text-pixel text-[10px] text-skull-white">
+                📱 MOBILE TIP: When selecting files, choose "Files" or "Browse" option (NOT Camera/Photos)
+              </p>
+            </div>
+          )}
+
           {/* Drag & Drop Area */}
           <div
             className={`border-4 ${
@@ -131,55 +134,43 @@ export function BulkRomUpload({ onUploadComplete }: BulkRomUploadProps) {
             onDragOver={handleDrag}
             onDrop={handleDrop}
           >
-            <input
-              ref={fileInputRef}
-              type="file"
-              id="bulk-rom-files"
-              name="bulk-rom-files"
-              multiple
-              onChange={handleFileSelect}
-              accept=".nes,.snes,.sfc,.gb,.gbc,.gba,.n64,.z64,.nds,.smd,.gen,.iso,.bin,.cue,.zip,.7z,.rar"
-              className="hidden"
-            />
-
-            {selectedFiles.length > 0 ? (
-              <div className="text-pixel text-sm text-ocean-dark">
-                <p className="mb-4">📦 {selectedFiles.length} files selected</p>
-                <div className="mb-4 max-h-48 space-y-2 overflow-y-auto">
-                  {selectedFiles.map((file, index) => (
-                    <div
-                      key={index}
-                      className="flex items-center justify-between bg-white/20 p-2"
-                    >
-                      <span className="text-xs truncate flex-1">{file.name}</span>
-                      <button
-                        type="button"
-                        onClick={() => removeFile(index)}
-                        className="ml-2 text-blood-red hover:text-blood-red/70"
+            <div className="w-full">
+              {selectedFiles.length > 0 && (
+                <div className="text-pixel text-sm text-ocean-dark mb-4">
+                  <p className="mb-2">📦 {selectedFiles.length} files selected</p>
+                  <div className="max-h-48 space-y-2 overflow-y-auto">
+                    {selectedFiles.map((file, index) => (
+                      <div
+                        key={index}
+                        className="flex items-center justify-between bg-white/20 p-2"
                       >
-                        ❌
-                      </button>
-                    </div>
-                  ))}
+                        <span className="text-xs truncate flex-1">{file.name}</span>
+                        <button
+                          type="button"
+                          onClick={() => removeFile(index)}
+                          className="ml-2 text-blood-red hover:text-blood-red/70"
+                        >
+                          ❌
+                        </button>
+                      </div>
+                    ))}
+                  </div>
                 </div>
-                <button
-                  type="button"
-                  onClick={() => fileInputRef.current?.click()}
-                  className="btn-retro text-xs"
-                >
-                  ADD MORE FILES
-                </button>
-              </div>
-            ) : (
-              <div>
-                <p className="text-pixel mb-4 text-sm text-ocean-dark">
-                  Drag & Drop multiple ROM files here
-                </p>
-                <label htmlFor="bulk-rom-files" className="btn-retro cursor-pointer text-xs">
-                  SELECT FILES
-                </label>
-              </div>
-            )}
+              )}
+
+              <p className="text-pixel mb-4 text-sm text-ocean-dark text-center">
+                Select multiple ROM files
+              </p>
+
+              <input
+                ref={fileInputRef}
+                type="file"
+                multiple
+                onChange={handleFileSelect}
+                accept=".zip,.rar,.7z,.nes,.snes,.smc,.sfc,.gb,.gbc,.gba,.n64,.z64,.nds,.gen,.smd,.bin,.iso"
+                className="w-full border-4 border-wood-brown bg-sand-beige p-3 text-sm text-ocean-dark cursor-pointer file:mr-4 file:py-2 file:px-4 file:border-0 file:text-sm file:font-semibold file:bg-pirate-gold file:text-ocean-dark hover:file:bg-pirate-gold/80"
+              />
+            </div>
           </div>
 
           {/* System */}
@@ -196,10 +187,14 @@ export function BulkRomUpload({ onUploadComplete }: BulkRomUploadProps) {
               className="w-full border-4 border-wood-brown bg-sand-beige p-3 text-sm text-ocean-dark"
             >
               <option value="">Select system...</option>
-              {systems.map((s) => (
-                <option key={s.value} value={s.value}>
-                  {s.label}
-                </option>
+              {Array.from(systemsByManufacturer.entries()).map(([manufacturer, systems]) => (
+                <optgroup key={manufacturer} label={manufacturer}>
+                  {systems.map((s) => (
+                    <option key={s.id} value={s.id}>
+                      {s.name}
+                    </option>
+                  ))}
+                </optgroup>
               ))}
             </select>
           </div>

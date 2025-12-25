@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { collectionApi, type Collection } from '../services/api';
+import { toast } from '../utils/toast';
 
 interface AddToCollectionModalProps {
   gameId: string;
@@ -54,16 +55,23 @@ export function AddToCollectionModal({
             errorCount++;
           }
         }
-        alert(`✅ Added ${successCount} games. ${errorCount > 0 ? `❌ ${errorCount} failed.` : ''}`);
+        if (errorCount > 0) {
+          toast.warning(
+            'Partially Added',
+            `${successCount} games added successfully. ${errorCount} failed.`
+          );
+        } else {
+          toast.success('Games Added', `${successCount} games added to collection`);
+        }
       } else {
         // Add single game
         await collectionApi.addGameToCollection(collectionId, gameId);
+        toast.success('Added to Collection', gameName ? `${gameName} added successfully` : 'Game added successfully');
       }
       if (onSuccess) onSuccess();
       onClose();
     } catch (err: any) {
-      const message = err.response?.data?.message || 'Failed to add game to collection';
-      alert(message);
+      toast.error(err, 'Failed to add to collection');
     }
   };
 
@@ -90,10 +98,10 @@ export function AddToCollectionModal({
       }
 
       if (onSuccess) onSuccess();
+      toast.success('Collection Created', `${newCollectionName} created and game(s) added`);
       onClose();
     } catch (err: any) {
-      const message = err.response?.data?.message || 'Failed to create collection';
-      alert(message);
+      toast.error(err, 'Failed to create collection');
     } finally {
       setCreating(false);
     }

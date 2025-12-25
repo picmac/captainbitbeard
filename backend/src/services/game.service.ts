@@ -2,6 +2,7 @@ import { PrismaClient, Game, Prisma } from '@prisma/client';
 import { minioService } from './minio.service';
 import { screenScraperService } from './screenscraper.service';
 import { logger } from '../utils/logger';
+import { SUPPORTED_SYSTEMS, isValidSystem } from '../constants/systems';
 import crypto from 'crypto';
 
 const prisma = new PrismaClient();
@@ -30,6 +31,12 @@ export class GameService {
    */
   async createGame(data: CreateGameDto): Promise<Game> {
     try {
+      // Validate system
+      if (!isValidSystem(data.system)) {
+        const validSystems = SUPPORTED_SYSTEMS.map(s => s.id).join(', ');
+        throw new Error(`Unsupported system: ${data.system}. Valid systems are: ${validSystems}`);
+      }
+
       // Upload ROM to MinIO
       const romPath = await minioService.uploadRom(
         data.romFileName,
@@ -200,7 +207,7 @@ export class GameService {
       yearFrom,
       yearTo,
       players,
-      limit = 50,
+      limit = 20,
     } = options;
 
     // Build the where clause for full-text search
@@ -355,22 +362,39 @@ export class GameService {
   }
 
   /**
-   * Get supported systems
+   * Get supported systems with metadata
    */
-  async getSupportedSystems(): Promise<Array<{ system: string; count: number }>> {
-    const systems = await prisma.game.groupBy({
+  async getSupportedSystems(): Promise<Array<{
+    id: string;
+    name: string;
+    manufacturer: string;
+    core: string;
+    extensions: string[];
+    biosRequired: boolean;
+    count: number;
+  }>> {
+    // Get game counts from database
+    const gameCounts = await prisma.game.groupBy({
       by: ['system'],
       _count: {
         system: true,
       },
-      orderBy: {
-        system: 'asc',
-      },
     });
 
-    return systems.map((s) => ({
-      system: s.system,
-      count: s._count.system,
+    // Create a map of system -> count
+    const countMap = new Map(
+      gameCounts.map((s) => [s.system, s._count.system])
+    );
+
+    // Return all supported systems with their counts
+    return SUPPORTED_SYSTEMS.map((sys) => ({
+      id: sys.id,
+      name: sys.name,
+      manufacturer: sys.manufacturer,
+      core: sys.core,
+      extensions: sys.extensions,
+      biosRequired: sys.biosRequired,
+      count: countMap.get(sys.id) || 0,
     }));
   }
 

@@ -1,5 +1,6 @@
 import { useEffect, useCallback } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
+import { toast } from '../utils/toast';
 
 export interface KeyboardShortcut {
   key: string;
@@ -163,7 +164,7 @@ GAME LIBRARY:
   F           → Toggle favorite
   `;
 
-  alert(helpText);
+  toast.info('Keyboard Shortcuts', helpText);
 }
 
 /**

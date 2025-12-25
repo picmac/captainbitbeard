@@ -29,7 +29,7 @@ function getErrorMessage(error: unknown): string {
 
 export class AdminController {
   // Get system statistics
-  async getSystemStats(req: AuthRequest, res: Response): Promise<void> {
+  async getSystemStats(_req: AuthRequest, res: Response): Promise<void> {
     try {
       const stats = await adminService.getSystemStats();
 
@@ -199,7 +199,7 @@ export class AdminController {
   }
 
   // Find duplicate games
-  async findDuplicates(req: AuthRequest, res: Response): Promise<void> {
+  async findDuplicates(_req: AuthRequest, res: Response): Promise<void> {
     try {
       const duplicates = await adminService.findDuplicates();
 
@@ -217,7 +217,7 @@ export class AdminController {
   }
 
   // Get storage stats
-  async getStorageStats(req: AuthRequest, res: Response): Promise<void> {
+  async getStorageStats(_req: AuthRequest, res: Response): Promise<void> {
     try {
       const stats = await adminService.getStorageStats();
 
@@ -235,7 +235,7 @@ export class AdminController {
   }
 
   // Get activity stats
-  async getActivityStats(req: AuthRequest, res: Response): Promise<void> {
+  async getActivityStats(_req: AuthRequest, res: Response): Promise<void> {
     try {
       const stats = await adminService.getActivityStats();
 

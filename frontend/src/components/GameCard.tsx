@@ -2,6 +2,8 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { gameApi, type Game } from '../services/api';
 import { FavoriteButton } from './FavoriteButton';
+import { toast } from '../utils/toast';
+import { ConfirmationModal } from './ConfirmationModal';
 
 interface GameCardProps {
   game: Game;
@@ -20,6 +22,8 @@ export function GameCard({
 }: GameCardProps) {
   const [scraping, setScraping] = useState(false);
   const [showActions, setShowActions] = useState(false);
+  const [showScrapeConfirm, setShowScrapeConfirm] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const navigate = useNavigate();
 
   const handleViewDetails = () => {
@@ -31,42 +35,42 @@ export function GameCard({
     }
   };
 
-  const handleScrapeMetadata = async (e: React.MouseEvent) => {
+  const handleScrapeMetadata = (e: React.MouseEvent) => {
     e.stopPropagation();
+    setShowScrapeConfirm(true);
+  };
 
-    if (!confirm(`Fetch metadata and cover for "${game.title}"?`)) {
-      return;
-    }
-
+  const confirmScrapeMetadata = async () => {
     setScraping(true);
+    setShowScrapeConfirm(false);
     try {
       await gameApi.scrapeMetadata(game.id);
-      alert(`✅ Metadata fetched successfully for ${game.title}!`);
+      toast.success('Metadata Fetched', `Updated metadata for ${game.title}`);
       if (onMetadataFetched) {
         onMetadataFetched();
       }
     } catch (error) {
-      alert(`❌ Failed to fetch metadata: ${error}`);
+      toast.error(error, 'Failed to fetch metadata');
     } finally {
       setScraping(false);
     }
   };
 
-  const handleDelete = async (e: React.MouseEvent) => {
+  const handleDelete = (e: React.MouseEvent) => {
     e.stopPropagation();
+    setShowDeleteConfirm(true);
+  };
 
-    if (!confirm(`Delete "${game.title}"? This cannot be undone!`)) {
-      return;
-    }
-
+  const confirmDelete = async () => {
+    setShowDeleteConfirm(false);
     try {
       await gameApi.deleteGame(game.id);
-      alert(`✅ ${game.title} deleted successfully!`);
+      toast.success('Game Deleted', `${game.title} has been removed`);
       if (onMetadataFetched) {
         onMetadataFetched();
       }
     } catch (error) {
-      alert(`❌ Failed to delete game: ${error}`);
+      toast.error(error, 'Failed to delete game');
     }
   };
 
@@ -180,6 +184,27 @@ export function GameCard({
           <button className="btn-retro z-10 text-xs">👁️ VIEW DETAILS</button>
         </div>
       </div>
+
+      {/* Confirmation Modals */}
+      <ConfirmationModal
+        isOpen={showScrapeConfirm}
+        onClose={() => setShowScrapeConfirm(false)}
+        onConfirm={confirmScrapeMetadata}
+        title="Fetch Metadata"
+        message={`Fetch metadata and cover art for "${game.title}"?`}
+        confirmText="FETCH"
+        type="info"
+      />
+
+      <ConfirmationModal
+        isOpen={showDeleteConfirm}
+        onClose={() => setShowDeleteConfirm(false)}
+        onConfirm={confirmDelete}
+        title="Delete Game"
+        message={`Delete "${game.title}"? This action cannot be undone.`}
+        confirmText="DELETE"
+        type="danger"
+      />
     </div>
   );
 }

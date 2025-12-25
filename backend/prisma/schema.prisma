@@ -66,6 +66,8 @@ model Game {
   backgroundUrl   String?     @map("background_url") // Fanart/background image
   logoUrl         String?     @map("logo_url")    // Game logo
   videoUrl        String?     @map("video_url")   // Trailer/gameplay video URL
+  backgroundMusicUrl String?  @map("background_music_url") // Background music for game details page
+  animatedCoverUrl   String?  @map("animated_cover_url")   // Animated cover (WebP/APNG)
   description     String?
   releaseDate     DateTime?   @map("release_date")
   developer       String?
@@ -103,6 +105,11 @@ model Game {
   @@index([system])
   @@index([title])
   @@index([parentGameId])
+  @@index([genre])
+  @@index([developer])
+  @@index([publisher])
+  @@index([createdAt])
+  @@index([system, title])
   @@map("games")
 }
 
@@ -135,17 +142,33 @@ model GameMetadata {
 }
 
 model Screenshot {
-  id        String   @id @default(uuid())
-  gameId    String   @map("game_id")
-  url       String   // MinIO URL
-  type      String   @default("gameplay") // gameplay, title, box
-  order     Int      @default(0)
-  createdAt DateTime @default(now()) @map("created_at")
+  id          String           @id @default(uuid())
+  gameId      String           @map("game_id")
+  url         String           // MinIO URL
+  type        String           @default("gameplay") // gameplay, title, box
+  category    ScreenshotCategory? @default(GAMEPLAY) // Categorized screenshot type
+  caption     String?          // Optional caption/description
+  order       Int              @default(0)
+  createdAt   DateTime         @default(now()) @map("created_at")
 
   game Game @relation(fields: [gameId], references: [id], onDelete: Cascade)
 
   @@index([gameId])
+  @@index([category])
   @@map("screenshots")
+}
+
+enum ScreenshotCategory {
+  GAMEPLAY      // General gameplay
+  TITLE_SCREEN  // Title/splash screen
+  MENU          // Menu screens
+  CUTSCENE      // Cutscenes/story
+  BOSS_FIGHT    // Boss battles
+  ENDING        // Ending screens
+  CREDITS       // Credits
+  EASTER_EGG    // Hidden content
+  MULTIPLAYER   // Multiplayer mode
+  CUSTOM        // Custom/other
 }
 
 // ============================================
