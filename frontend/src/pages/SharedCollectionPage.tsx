@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { collectionShareApi, type Collection } from '../services/api';
+import { PageTitle } from '../components/PageTitle';
 
 export function SharedCollectionPage() {
   const { shareLink } = useParams<{ shareLink: string }>();
@@ -39,6 +40,10 @@ export function SharedCollectionPage() {
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
+        <PageTitle
+          title="Loading Collection"
+          description="Loading shared collection..."
+        />
         <div className="text-pixel text-pirate-gold text-xl">LOADING...</div>
       </div>
     );
@@ -47,6 +52,10 @@ export function SharedCollectionPage() {
   if (error || !collection) {
     return (
       <div className="min-h-screen p-4">
+        <PageTitle
+          title="Collection Not Found"
+          description="The requested collection could not be found or is not accessible"
+        />
         <div className="max-w-4xl mx-auto">
           <div className="border-4 border-wood-brown bg-sand-beige p-6 text-center">
             <p className="text-pixel text-wood-brown mb-4">
@@ -63,6 +72,11 @@ export function SharedCollectionPage() {
 
   return (
     <div className="min-h-screen p-4">
+      <PageTitle
+        title={`Shared: ${collection.name}`}
+        description={collection.description || `A shared collection with ${collection.games.length} games`}
+      />
+
       {/* Header */}
       <div className="mb-6">
         <div className="mx-auto max-w-7xl">

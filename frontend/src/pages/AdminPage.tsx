@@ -3,14 +3,16 @@ import { Link } from 'react-router-dom';
 import { RomUpload } from '../components/RomUpload';
 import { BulkRomUpload } from '../components/BulkRomUpload';
 import { BiosManager } from '../components/BiosManager';
+import { ConfirmationModal } from '../components/ConfirmationModal';
 import {
   adminApi,
   type SystemStats,
   type AdminUser,
   type ActivityStats,
-  type StorageStats,
 } from '../services/api';
 import { useAuth } from '../context/AuthContext';
+import { toast } from '../utils/toast';
+import { PageTitle } from '../components/PageTitle';
 
 type TabType = 'dashboard' | 'upload' | 'users' | 'bulk' | 'duplicates' | 'bios';
 
@@ -23,7 +25,6 @@ export function AdminPage() {
   // Dashboard state
   const [systemStats, setSystemStats] = useState<SystemStats | null>(null);
   const [activityStats, setActivityStats] = useState<ActivityStats | null>(null);
-  const [storageStats, setStorageStats] = useState<StorageStats | null>(null);
   const [loadingStats, setLoadingStats] = useState(false);
 
   // User management state
@@ -33,6 +34,11 @@ export function AdminPage() {
   // Duplicates state
   const [duplicates, setDuplicates] = useState<any[]>([]);
   const [loadingDuplicates, setLoadingDuplicates] = useState(false);
+
+  // Confirmation modal state
+  const [showRoleChangeConfirm, setShowRoleChangeConfirm] = useState(false);
+  const [showDeleteUserConfirm, setShowDeleteUserConfirm] = useState(false);
+  const [selectedUser, setSelectedUser] = useState<{ id: string; username: string; newRole?: string } | null>(null);
 
   useEffect(() => {
     if (activeTab === 'dashboard') {
@@ -47,14 +53,12 @@ export function AdminPage() {
   const loadDashboardStats = async () => {
     setLoadingStats(true);
     try {
-      const [system, activity, storage] = await Promise.all([
+      const [system, activity] = await Promise.all([
         adminApi.getSystemStats(),
         adminApi.getActivityStats(),
-        adminApi.getStorageStats(),
       ]);
       setSystemStats(system.data);
       setActivityStats(activity.data);
-      setStorageStats(storage.data);
     } catch (err) {
       console.error('Failed to load stats:', err);
     } finally {
@@ -90,27 +94,37 @@ export function AdminPage() {
     setUploadKey((prev) => prev + 1);
   };
 
-  const handleUpdateUserRole = async (userId: string, role: string) => {
-    if (!window.confirm(`Change user role to ${role}?`)) return;
+  const handleUpdateUserRole = async (userId: string, role: string, username: string) => {
+    setSelectedUser({ id: userId, username, newRole: role });
+    setShowRoleChangeConfirm(true);
+  };
+
+  const confirmRoleChange = async () => {
+    if (!selectedUser || !selectedUser.newRole) return;
 
     try {
-      await adminApi.updateUserRole(userId, role);
+      await adminApi.updateUserRole(selectedUser.id, selectedUser.newRole);
       await loadUsers();
-      alert('User role updated successfully!');
+      toast.success('Role Updated', `${selectedUser.username} is now ${selectedUser.newRole}`);
     } catch (err: any) {
-      alert(err.response?.data?.message || 'Failed to update user role');
+      toast.error(err, 'Failed to update user role');
     }
   };
 
   const handleDeleteUser = async (userId: string, username: string) => {
-    if (!window.confirm(`Delete user "${username}"? This cannot be undone!`)) return;
+    setSelectedUser({ id: userId, username });
+    setShowDeleteUserConfirm(true);
+  };
+
+  const confirmDeleteUser = async () => {
+    if (!selectedUser) return;
 
     try {
-      await adminApi.deleteUser(userId);
+      await adminApi.deleteUser(selectedUser.id);
       await loadUsers();
-      alert('User deleted successfully!');
+      toast.success('User Deleted', `${selectedUser.username} has been removed`);
     } catch (err: any) {
-      alert(err.response?.data?.message || 'Failed to delete user');
+      toast.error(err, 'Failed to delete user');
     }
   };
 
@@ -131,6 +145,11 @@ export function AdminPage() {
 
   return (
     <div className="min-h-screen p-4">
+      <PageTitle
+        title="Admin Panel"
+        description="System management, ROM uploads, user management, and BIOS configuration"
+      />
+
       {/* Header */}
       <div className="mb-8 text-center">
         <h1 className="text-pixel mb-2 text-2xl text-pirate-gold">
@@ -403,7 +422,8 @@ export function AdminPage() {
                             onClick={() =>
                               handleUpdateUserRole(
                                 u.id,
-                                u.role === 'ADMIN' ? 'USER' : 'ADMIN'
+                                u.role === 'ADMIN' ? 'USER' : 'ADMIN',
+                                u.username
                               )
                             }
                             className="btn-retro text-[10px] px-2"
@@ -482,6 +502,45 @@ export function AdminPage() {
           ← BACK TO LIBRARY
         </Link>
       </div>
+
+      {/* Role Change Confirmation Modal */}
+      {selectedUser && selectedUser.newRole && (
+        <ConfirmationModal
+          isOpen={showRoleChangeConfirm}
+          onClose={() => setShowRoleChangeConfirm(false)}
+          onConfirm={confirmRoleChange}
+          title="Change User Role"
+          message={`Change ${selectedUser.username}'s role to ${selectedUser.newRole}? This will ${selectedUser.newRole === 'ADMIN' ? 'grant full administrative access' : 'remove administrative privileges'}.`}
+          confirmText="CHANGE ROLE"
+          cancelText="CANCEL"
+          type={selectedUser.newRole === 'ADMIN' ? 'warning' : 'info'}
+        />
+      )}
+
+      {/* Delete User Confirmation Modal */}
+      {selectedUser && !selectedUser.newRole && (
+        <ConfirmationModal
+          isOpen={showDeleteUserConfirm}
+          onClose={() => setShowDeleteUserConfirm(false)}
+          onConfirm={confirmDeleteUser}
+          title="Delete User"
+          message={`Are you sure you want to delete user "${selectedUser.username}"? This action cannot be undone and will remove all their data including collections, favorites, and save states.`}
+          confirmText="DELETE USER"
+          cancelText="CANCEL"
+          type="danger"
+        >
+          <div className="text-pixel text-sm text-ocean-dark">
+            <div className="font-bold mb-2">This will permanently delete:</div>
+            <ul className="text-xs text-left space-y-1">
+              <li>• User account: {selectedUser.username}</li>
+              <li>• All collections</li>
+              <li>• All favorites</li>
+              <li>• All save states</li>
+              <li>• All activity history</li>
+            </ul>
+          </div>
+        </ConfirmationModal>
+      )}
     </div>
   );
 }

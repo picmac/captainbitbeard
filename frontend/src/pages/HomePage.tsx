@@ -1,8 +1,13 @@
 import { Link } from 'react-router-dom';
+import { PageTitle } from '../components/PageTitle';
 
 export function HomePage() {
   return (
     <div className="flex min-h-screen flex-col items-center justify-center p-4">
+      <PageTitle
+        title="Welcome"
+        description="Captain Bitbeard - Your retro gaming treasure chest. Play classic games from Nintendo, Sega, PlayStation, and more in your browser."
+      />
       <div className="text-center">
         <h1 className="text-pixel mb-8 text-4xl text-pirate-gold">
           🏴‍☠️ CAPTAIN BITBEARD

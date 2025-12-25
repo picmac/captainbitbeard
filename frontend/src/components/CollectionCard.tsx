@@ -1,5 +1,7 @@
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import type { Collection } from '../services/api';
+import { ConfirmationModal } from './ConfirmationModal';
 
 interface CollectionCardProps {
   collection: Collection;
@@ -8,6 +10,7 @@ interface CollectionCardProps {
 
 export function CollectionCard({ collection, onDelete }: CollectionCardProps) {
   const navigate = useNavigate();
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   const handleClick = () => {
     navigate(`/collections/${collection.id}`);
@@ -15,7 +18,11 @@ export function CollectionCard({ collection, onDelete }: CollectionCardProps) {
 
   const handleDelete = (e: React.MouseEvent) => {
     e.stopPropagation();
-    if (onDelete && window.confirm(`Delete collection "${collection.name}"?`)) {
+    setShowDeleteConfirm(true);
+  };
+
+  const confirmDelete = () => {
+    if (onDelete) {
       onDelete(collection.id);
     }
   };
@@ -83,6 +90,36 @@ export function CollectionCard({ collection, onDelete }: CollectionCardProps) {
           </button>
         )}
       </div>
+
+      {/* Delete Confirmation Modal */}
+      <ConfirmationModal
+        isOpen={showDeleteConfirm}
+        onClose={(e) => {
+          if (e) e.stopPropagation();
+          setShowDeleteConfirm(false);
+        }}
+        onConfirm={(e) => {
+          if (e) e.stopPropagation();
+          confirmDelete();
+          setShowDeleteConfirm(false);
+        }}
+        title="Delete Collection"
+        message={`Are you sure you want to delete "${collection.name}"? Games in this collection will not be deleted, only the collection itself.`}
+        confirmText="DELETE"
+        cancelText="CANCEL"
+        type="danger"
+      >
+        <div className="text-pixel text-sm text-ocean-dark">
+          <div className="font-bold mb-2">This will permanently delete:</div>
+          <ul className="text-xs text-left space-y-1">
+            <li>• Collection: {collection.name}</li>
+            <li>• Organization of {collection.games.length} {collection.games.length === 1 ? 'game' : 'games'}</li>
+          </ul>
+          <div className="mt-3 text-[10px] text-wood-brown">
+            Note: The games themselves will remain in your library
+          </div>
+        </div>
+      </ConfirmationModal>
     </div>
   );
 }

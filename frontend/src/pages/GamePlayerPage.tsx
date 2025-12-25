@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { gameApi, playHistoryApi, type Game } from '../services/api';
 import { EmulatorPlayer } from '../components/EmulatorPlayer';
 import { useAuth } from '../context/AuthContext';
+import { PageTitle } from '../components/PageTitle';
 
 export function GamePlayerPage() {
   const { gameId } = useParams<{ gameId: string }>();
@@ -51,6 +52,10 @@ export function GamePlayerPage() {
   if (loading) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-night-sky">
+        <PageTitle
+          title="Loading Game"
+          description="Loading game..."
+        />
         <div className="text-center">
           <div className="loading-spinner mx-auto mb-4"></div>
           <p className="text-pixel text-sm text-skull-white">
@@ -64,6 +69,10 @@ export function GamePlayerPage() {
   if (error || !game || !game.romDownloadUrl) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-night-sky p-4">
+        <PageTitle
+          title="Error"
+          description="Error loading game"
+        />
         <div className="border-4 border-blood-red bg-blood-red/20 p-6 text-center">
           <p className="text-pixel mb-4 text-sm text-skull-white">
             ❌ ERROR
@@ -80,12 +89,19 @@ export function GamePlayerPage() {
   }
 
   return (
-    <EmulatorPlayer
-      gameId={game.id}
-      gameTitle={game.title}
-      system={game.system}
-      romUrl={game.romDownloadUrl}
-      onExit={handleExit}
-    />
+    <>
+      <PageTitle
+        title={`Playing ${game.title}`}
+        description={`Now playing ${game.title} for ${game.system}`}
+      />
+      <h1 className="sr-only">Playing {game.title}</h1>
+      <EmulatorPlayer
+        gameId={game.id}
+        gameTitle={game.title}
+        system={game.system}
+        romUrl={game.romDownloadUrl}
+        onExit={handleExit}
+      />
+    </>
   );
 }

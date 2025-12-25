@@ -3,6 +3,8 @@ import { Link, useNavigate } from 'react-router-dom';
 import { collectionApi, type Collection } from '../services/api';
 import { CollectionCard } from '../components/CollectionCard';
 import { useAuth } from '../context/AuthContext';
+import { toast } from '../utils/toast';
+import { PageTitle } from '../components/PageTitle';
 
 export function CollectionsPage() {
   const { user } = useAuth();
@@ -49,8 +51,9 @@ export function CollectionsPage() {
       setNewCollectionDescription('');
       setShowCreateForm(false);
       await loadCollections();
+      toast.success('Collection Created', `${newCollectionName} is ready to organize your games`);
     } catch (err: any) {
-      alert(err.response?.data?.message || 'Failed to create collection');
+      toast.error(err, 'Failed to create collection');
     } finally {
       setCreating(false);
     }
@@ -60,8 +63,9 @@ export function CollectionsPage() {
     try {
       await collectionApi.deleteCollection(collectionId);
       await loadCollections();
+      toast.success('Collection Deleted', 'Collection has been removed');
     } catch (err: any) {
-      alert(err.response?.data?.message || 'Failed to delete collection');
+      toast.error(err, 'Failed to delete collection');
     }
   };
 
@@ -71,6 +75,11 @@ export function CollectionsPage() {
 
   return (
     <div className="min-h-screen p-4">
+      <PageTitle
+        title="My Collections"
+        description="Organize your retro games into custom collections and playlists"
+      />
+
       {/* Header */}
       <div className="mb-6">
         <h1 className="text-pixel mb-4 text-center text-2xl text-pirate-gold">
@@ -99,9 +108,9 @@ export function CollectionsPage() {
             onSubmit={handleCreateCollection}
             className="border-4 border-wood-brown bg-sand-beige p-4"
           >
-            <h3 className="text-pixel text-xs text-ocean-dark mb-3">
+            <h2 className="text-pixel text-xs text-ocean-dark mb-3">
               CREATE NEW COLLECTION
-            </h3>
+            </h2>
             <input
               type="text"
               value={newCollectionName}
@@ -164,19 +173,25 @@ export function CollectionsPage() {
       {!loading && !error && (
         <div className="mx-auto max-w-7xl">
           {collections.length === 0 ? (
-            <div className="border-4 border-wood-brown bg-sand-beige p-8 text-center">
-              <p className="text-pixel text-sm text-ocean-dark mb-4">
-                🎮 NO COLLECTIONS YET
-              </p>
-              <p className="text-pixel text-xs text-wood-brown mb-6">
-                Create your first collection to organize your games!
+            <div className="border-4 border-wood-brown bg-sand-beige p-12 text-center max-w-2xl mx-auto">
+              <div className="text-6xl mb-4">📚</div>
+              <h2 className="text-pixel text-lg text-ocean-dark mb-2">
+                No Collections Yet
+              </h2>
+              <p className="text-pixel text-xs text-wood-brown mb-6 leading-relaxed">
+                Collections help you organize games by theme, genre, or any category you choose.
+                <br />
+                Create playlists like "Favorites", "Childhood Classics", or "Multiplayer Games"!
               </p>
               <button
                 onClick={() => setShowCreateForm(true)}
-                className="btn-retro text-xs"
+                className="btn-retro text-xs bg-pirate-gold"
               >
-                ➕ CREATE COLLECTION
+                ➕ CREATE YOUR FIRST COLLECTION
               </button>
+              <div className="mt-6 text-pixel text-[10px] text-wood-brown">
+                Tip: Press <kbd className="bg-pirate-gold px-1">Shift+C</kbd> anytime to view collections
+              </div>
             </div>
           ) : (
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">

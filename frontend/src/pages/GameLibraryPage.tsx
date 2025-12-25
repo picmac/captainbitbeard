@@ -7,13 +7,21 @@ import { SearchBar } from '../components/SearchBar';
 import { ContinuePlaying } from '../components/ContinuePlaying';
 import { AdvancedSearchBar } from '../components/AdvancedSearchBar';
 import { type Game } from '../services/api';
+import { getSystemsByManufacturer } from '../constants/systems';
+import { Tooltip } from '../components/Tooltip';
+import { OnboardingTour, useOnboarding } from '../components/OnboardingTour';
+import { HelpModal } from '../components/HelpModal';
+import { PageTitle } from '../components/PageTitle';
 
 export function GameLibraryPage() {
+  const systemsByManufacturer = getSystemsByManufacturer();
+  const { showTour, completeTour } = useOnboarding();
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedSystem, setSelectedSystem] = useState('');
   const [showFavoritesOnly, setShowFavoritesOnly] = useState(false);
   const [sortBy, setSortBy] = useState('default');
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+  const [showHelpModal, setShowHelpModal] = useState(false);
   const [advancedFilters, setAdvancedFilters] = useState<FilterObject>({
     systems: [],
     genre: undefined,
@@ -29,16 +37,33 @@ export function GameLibraryPage() {
 
   return (
     <div className="min-h-screen p-4">
+      <PageTitle
+        title="Game Library"
+        description="Browse and play your retro game collection from Nintendo, Sega, PlayStation, and more"
+      />
+
       {/* Header */}
       <div className="mb-8">
-        <h1 className="text-pixel mb-4 text-center text-2xl text-pirate-gold">
-          🎮 TREASURE CHEST
-        </h1>
+        <div className="flex items-center justify-center gap-4 mb-4">
+          <h1 className="text-pixel text-center text-2xl text-pirate-gold">
+            🎮 TREASURE CHEST
+          </h1>
+          <Tooltip content="Get help and view documentation (Keyboard: Shift+?)">
+            <button
+              onClick={() => setShowHelpModal(true)}
+              className="btn-retro text-xs px-3 py-2 bg-treasure-green"
+            >
+              📖 HELP
+            </button>
+          </Tooltip>
+        </div>
 
         {/* Search & Filter */}
         <div className="mx-auto max-w-4xl space-y-4">
           {/* Search */}
-          <SearchBar value={searchQuery} onChange={setSearchQuery} />
+          <div data-tour="search-bar">
+            <SearchBar value={searchQuery} onChange={setSearchQuery} />
+          </div>
 
           {/* System Filter */}
           <select
@@ -49,18 +74,15 @@ export function GameLibraryPage() {
             className="w-full border-4 border-wood-brown bg-sand-beige p-3 text-sm text-ocean-dark"
           >
             <option value="">All Systems</option>
-            <option value="nes">Nintendo (NES)</option>
-            <option value="snes">Super Nintendo (SNES)</option>
-            <option value="gb">Game Boy</option>
-            <option value="gbc">Game Boy Color (GBC)</option>
-            <option value="gba">Game Boy Advance (GBA)</option>
-            <option value="n64">Nintendo 64 (N64)</option>
-            <option value="nds">Nintendo DS (NDS)</option>
-            <option value="genesis">Sega Genesis</option>
-            <option value="sms">Sega Master System (SMS)</option>
-            <option value="gg">Sega Game Gear (GG)</option>
-            <option value="psx">PlayStation 1 (PSX)</option>
-            <option value="psp">PlayStation Portable (PSP)</option>
+            {Array.from(systemsByManufacturer.entries()).map(([manufacturer, systems]) => (
+              <optgroup key={manufacturer} label={manufacturer}>
+                {systems.map((s) => (
+                  <option key={s.id} value={s.id}>
+                    {s.name}
+                  </option>
+                ))}
+              </optgroup>
+            ))}
           </select>
 
           {/* Favorites Filter */}
@@ -76,7 +98,7 @@ export function GameLibraryPage() {
       </div>
 
       {/* Game Grid */}
-      <div className="mx-auto max-w-7xl">
+      <div className="mx-auto max-w-7xl" data-tour="game-grid">
         <ContinuePlaying />
 
         {/* Advanced Search Bar */}
@@ -142,19 +164,33 @@ export function GameLibraryPage() {
 
       {/* Navigation Links */}
       <div className="mt-8 flex gap-4 justify-center flex-wrap">
-        <Link to="/collections" className="btn-retro text-xs">
-          📚 MY COLLECTIONS
-        </Link>
-        <Link to="/save-states" className="btn-retro text-xs">
-          💾 MY SAVES
-        </Link>
-        <Link to="/profile" className="btn-retro text-xs">
-          👤 MY PROFILE
-        </Link>
-        <Link to="/admin" className="btn-retro text-xs">
-          ⚙️ ADMIN PANEL
-        </Link>
+        <Tooltip content="Navigate to Collections (Keyboard: Shift+C)">
+          <Link to="/collections" className="btn-retro text-xs" data-tour="collections-link">
+            📚 MY COLLECTIONS
+          </Link>
+        </Tooltip>
+        <Tooltip content="Navigate to Save States (Keyboard: Shift+S)">
+          <Link to="/save-states" className="btn-retro text-xs" data-tour="save-states-link">
+            💾 MY SAVES
+          </Link>
+        </Tooltip>
+        <Tooltip content="Navigate to Profile (Keyboard: Shift+P)">
+          <Link to="/profile" className="btn-retro text-xs">
+            👤 MY PROFILE
+          </Link>
+        </Tooltip>
+        <Tooltip content="Navigate to Admin Panel (Keyboard: Shift+A)">
+          <Link to="/admin" className="btn-retro text-xs">
+            ⚙️ ADMIN PANEL
+          </Link>
+        </Tooltip>
       </div>
+
+      {/* Onboarding Tour */}
+      <OnboardingTour run={showTour} onComplete={completeTour} />
+
+      {/* Help Modal */}
+      <HelpModal isOpen={showHelpModal} onClose={() => setShowHelpModal(false)} />
     </div>
   );
 }

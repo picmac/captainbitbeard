@@ -1,6 +1,7 @@
 import { useState, FormEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { PageTitle } from '../components/PageTitle';
 
 export function LoginPage() {
   const [username, setUsername] = useState('');
@@ -33,10 +34,14 @@ export function LoginPage() {
 
   return (
     <div className="flex min-h-screen items-center justify-center p-4">
+      <PageTitle
+        title="Login"
+        description="Sign in to Captain Bitbeard to access your game library"
+      />
       <div className="w-full max-w-md">
-        <h2 className="text-pixel mb-8 text-center text-2xl text-pirate-gold">
+        <h1 className="text-pixel mb-8 text-center text-2xl text-pirate-gold">
           LOGIN
-        </h2>
+        </h1>
 
         {error && (
           <div className="mb-4 border-4 border-blood-red bg-blood-red/20 p-3 text-center text-skull-white">

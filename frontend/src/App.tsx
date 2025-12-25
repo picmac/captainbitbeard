@@ -1,4 +1,5 @@
 import { Routes, Route } from 'react-router-dom';
+import { Toaster } from 'sonner';
 import { HomePage } from './pages/HomePage';
 import { GameLibraryPage } from './pages/GameLibraryPage';
 import { GameDetailsPage } from './pages/GameDetailsPage';
@@ -12,6 +13,7 @@ import { SharedCollectionPage } from './pages/SharedCollectionPage';
 import { SaveStatesPage } from './pages/SaveStatesPage';
 import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts';
 import { KeyboardShortcutsHelp } from './components/KeyboardShortcutsHelp';
+import { SkipToContent } from './components/SkipToContent';
 
 function App() {
   // Enable global keyboard shortcuts
@@ -19,7 +21,11 @@ function App() {
 
   return (
     <div className="min-h-screen bg-ocean-dark">
-      <Routes>
+      {/* Skip to main content link for accessibility */}
+      <SkipToContent />
+
+      <main id="main-content">
+        <Routes>
         <Route path="/" element={<HomePage />} />
         <Route path="/login" element={<LoginPage />} />
         <Route path="/library" element={<GameLibraryPage />} />
@@ -36,6 +42,24 @@ function App() {
 
       {/* Global Keyboard Shortcuts Help */}
       <KeyboardShortcutsHelp />
+
+      {/* Toast Notifications */}
+      <Toaster
+        position="top-right"
+        toastOptions={{
+          style: {
+            background: '#e8d5b7',
+            color: '#0f4c81',
+            border: '2px solid #8b4513',
+            fontFamily: '"Press Start 2P", monospace',
+            fontSize: '10px',
+            imageRendering: 'pixelated',
+          },
+          className: 'text-pixel',
+        }}
+        richColors
+      />
+      </main>
     </div>
   );
 }

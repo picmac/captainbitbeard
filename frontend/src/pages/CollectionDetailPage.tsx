@@ -9,6 +9,9 @@ import {
   SharePermission,
 } from '../services/api';
 import { useAuth } from '../context/AuthContext';
+import { toast } from '../utils/toast';
+import { ConfirmationModal } from '../components/ConfirmationModal';
+import { PageTitle } from '../components/PageTitle';
 
 export function CollectionDetailPage() {
   const { collectionId } = useParams<{ collectionId: string }>();
@@ -28,6 +31,14 @@ export function CollectionDetailPage() {
   const [shareUserId, setShareUserId] = useState('');
   const [sharePermission, setSharePermission] = useState<SharePermission>(SharePermission.VIEW);
   const [sharing, setSharing] = useState(false);
+
+  // Confirmation modal state
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [showRemoveGameConfirm, setShowRemoveGameConfirm] = useState(false);
+  const [showRemoveShareLinkConfirm, setShowRemoveShareLinkConfirm] = useState(false);
+  const [showRemoveUserConfirm, setShowRemoveUserConfirm] = useState(false);
+  const [gameToRemove, setGameToRemove] = useState<{ id: string; title: string } | null>(null);
+  const [userToRemove, setUserToRemove] = useState<{ id: string; username: string } | null>(null);
 
   useEffect(() => {
     if (!user || !collectionId) {
@@ -79,34 +90,44 @@ export function CollectionDetailPage() {
       });
       setEditing(false);
       await loadCollection();
+      toast.success('Collection Updated', 'Your changes have been saved');
     } catch (err: any) {
-      alert(err.response?.data?.message || 'Failed to update collection');
+      toast.error(err, 'Failed to update collection');
     } finally {
       setSaving(false);
     }
   };
 
-  const handleRemoveGame = async (gameId: string) => {
-    if (!collectionId) return;
-    if (!window.confirm('Remove this game from the collection?')) return;
+  const handleRemoveGame = (gameId: string, gameTitle: string) => {
+    setGameToRemove({ id: gameId, title: gameTitle });
+    setShowRemoveGameConfirm(true);
+  };
+
+  const confirmRemoveGame = async () => {
+    if (!collectionId || !gameToRemove) return;
 
     try {
-      await collectionApi.removeGameFromCollection(collectionId, gameId);
+      await collectionApi.removeGameFromCollection(collectionId, gameToRemove.id);
       await loadCollection();
+      toast.success('Game Removed', `${gameToRemove.title} removed from collection`);
     } catch (err: any) {
-      alert(err.response?.data?.message || 'Failed to remove game');
+      toast.error(err, 'Failed to remove game');
     }
   };
 
-  const handleDeleteCollection = async () => {
+  const handleDeleteCollection = () => {
+    setShowDeleteConfirm(true);
+  };
+
+  const confirmDeleteCollection = async () => {
     if (!collectionId) return;
-    if (!window.confirm(`Delete collection "${collection?.name}"? This cannot be undone.`)) return;
 
     try {
       await collectionApi.deleteCollection(collectionId);
+      toast.success('Collection Deleted', `${collection?.name} has been removed`);
       navigate('/collections');
     } catch (err: any) {
-      alert(err.response?.data?.message || 'Failed to delete collection');
+      toast.error(err, 'Failed to delete collection');
     }
   };
 
@@ -121,8 +142,9 @@ export function CollectionDetailPage() {
     try {
       const response = await collectionShareApi.updateVisibility(collectionId, visibility);
       setCollection(response.data.collection);
+      toast.success('Visibility Updated', `Collection is now ${visibility.toLowerCase()}`);
     } catch (err: any) {
-      alert(err.response?.data?.message || 'Failed to update visibility');
+      toast.error(err, 'Failed to update visibility');
     } finally {
       setChangingVisibility(false);
     }
@@ -135,23 +157,28 @@ export function CollectionDetailPage() {
     try {
       const response = await collectionShareApi.generateShareLink(collectionId);
       setCollection(response.data.collection);
+      toast.success('Share Link Generated', 'Copy the link below to share your collection');
     } catch (err: any) {
-      alert(err.response?.data?.message || 'Failed to generate share link');
+      toast.error(err, 'Failed to generate share link');
     } finally {
       setChangingVisibility(false);
     }
   };
 
-  const handleRemoveShareLink = async () => {
+  const handleRemoveShareLink = () => {
+    setShowRemoveShareLinkConfirm(true);
+  };
+
+  const confirmRemoveShareLink = async () => {
     if (!collectionId) return;
-    if (!window.confirm('Remove share link? This will make the collection private.')) return;
 
     setChangingVisibility(true);
     try {
       const response = await collectionShareApi.removeShareLink(collectionId);
       setCollection(response.data.collection);
+      toast.success('Share Link Removed', 'Collection is now private');
     } catch (err: any) {
-      alert(err.response?.data?.message || 'Failed to remove share link');
+      toast.error(err, 'Failed to remove share link');
     } finally {
       setChangingVisibility(false);
     }
@@ -161,7 +188,7 @@ export function CollectionDetailPage() {
     if (!collection?.shareLink) return;
     const fullUrl = `${window.location.origin}/shared/${collection.shareLink}`;
     navigator.clipboard.writeText(fullUrl);
-    alert('Share link copied to clipboard!');
+    toast.success('Link Copied', 'Share link copied to clipboard');
   };
 
   const getVisibilityLabel = (visibility: CollectionVisibility) => {
@@ -187,22 +214,28 @@ export function CollectionDetailPage() {
       setShareUserId('');
       setSharePermission(SharePermission.VIEW);
       await loadSharedUsers();
+      toast.success('Collection Shared', `Shared with user successfully`);
     } catch (err: any) {
-      alert(err.response?.data?.message || 'Failed to share collection');
+      toast.error(err, 'Failed to share collection');
     } finally {
       setSharing(false);
     }
   };
 
-  const handleRemoveUserAccess = async (userId: string) => {
-    if (!collectionId) return;
-    if (!window.confirm('Remove this user\'s access to the collection?')) return;
+  const handleRemoveUserAccess = (userId: string, username: string) => {
+    setUserToRemove({ id: userId, username });
+    setShowRemoveUserConfirm(true);
+  };
+
+  const confirmRemoveUserAccess = async () => {
+    if (!collectionId || !userToRemove) return;
 
     try {
-      await collectionShareApi.removeUserAccess(collectionId, userId);
+      await collectionShareApi.removeUserAccess(collectionId, userToRemove.id);
       await loadSharedUsers();
+      toast.success('Access Removed', `${userToRemove.username}'s access has been revoked`);
     } catch (err: any) {
-      alert(err.response?.data?.message || 'Failed to remove access');
+      toast.error(err, 'Failed to remove access');
     }
   };
 
@@ -237,6 +270,11 @@ export function CollectionDetailPage() {
 
   return (
     <div className="min-h-screen p-4">
+      <PageTitle
+        title={collection.name}
+        description={collection.description || `View and manage games in the ${collection.name} collection`}
+      />
+
       {/* Header */}
       <div className="mb-6">
         <div className="mx-auto max-w-7xl">
@@ -480,7 +518,7 @@ export function CollectionDetailPage() {
                             </p>
                           </div>
                           <button
-                            onClick={() => handleRemoveUserAccess(share.userId)}
+                            onClick={() => handleRemoveUserAccess(share.userId, share.user.username)}
                             className="btn-retro bg-blood-red text-[8px] px-2"
                           >
                             🗑️
@@ -548,7 +586,7 @@ export function CollectionDetailPage() {
                           ▶️ PLAY
                         </button>
                         <button
-                          onClick={() => handleRemoveGame(game.id)}
+                          onClick={() => handleRemoveGame(game.id, game.title)}
                           className="btn-retro bg-blood-red text-[8px] w-full"
                         >
                           🗑️ REMOVE
@@ -571,6 +609,56 @@ export function CollectionDetailPage() {
           </div>
         )}
       </div>
+
+      {/* Confirmation Modals */}
+      <ConfirmationModal
+        isOpen={showDeleteConfirm}
+        onClose={() => setShowDeleteConfirm(false)}
+        onConfirm={confirmDeleteCollection}
+        title="Delete Collection"
+        message={`Are you sure you want to delete "${collection?.name}"? This action cannot be undone.`}
+        confirmText="DELETE"
+        type="danger"
+      >
+        <div className="text-pixel text-sm text-center">
+          <p className="text-xs text-wood-brown mb-2">This will permanently delete:</p>
+          <ul className="text-[8px] text-left space-y-1">
+            <li>• Collection: {collection?.name}</li>
+            <li>• {collection?.games.length} game references</li>
+            <li>• All sharing settings</li>
+          </ul>
+        </div>
+      </ConfirmationModal>
+
+      <ConfirmationModal
+        isOpen={showRemoveGameConfirm}
+        onClose={() => setShowRemoveGameConfirm(false)}
+        onConfirm={confirmRemoveGame}
+        title="Remove Game"
+        message={`Remove "${gameToRemove?.title}" from this collection?`}
+        confirmText="REMOVE"
+        type="warning"
+      />
+
+      <ConfirmationModal
+        isOpen={showRemoveShareLinkConfirm}
+        onClose={() => setShowRemoveShareLinkConfirm(false)}
+        onConfirm={confirmRemoveShareLink}
+        title="Remove Share Link"
+        message="Remove the share link? This will make the collection private and the link will no longer work."
+        confirmText="REMOVE LINK"
+        type="warning"
+      />
+
+      <ConfirmationModal
+        isOpen={showRemoveUserConfirm}
+        onClose={() => setShowRemoveUserConfirm(false)}
+        onConfirm={confirmRemoveUserAccess}
+        title="Remove User Access"
+        message={`Remove ${userToRemove?.username}'s access to this collection?`}
+        confirmText="REMOVE ACCESS"
+        type="warning"
+      />
     </div>
   );
 }

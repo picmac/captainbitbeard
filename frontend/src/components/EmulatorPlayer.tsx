@@ -1,6 +1,9 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useCallback, useMemo } from 'react';
 import { saveStateApi, type SaveState } from '../services/api';
 import { useAuth } from '../context/AuthContext';
+import { EmulatorOverlay } from './EmulatorOverlay';
+import { toast } from '../utils/toast';
+import { ConfirmationModal } from './ConfirmationModal';
 
 interface EmulatorPlayerProps {
   gameId: string;
@@ -37,6 +40,8 @@ export function EmulatorPlayer({
   const { user } = useAuth();
   const containerRef = useRef<HTMLDivElement>(null);
   const [loading, setLoading] = useState(true);
+  const [loadingProgress, setLoadingProgress] = useState(0);
+  const [loadingStatus, setLoadingStatus] = useState('Initializing...');
   const [error, setError] = useState('');
   const [showSaveMenu, setShowSaveMenu] = useState(false);
   const [saveStates, setSaveStates] = useState<SaveState[]>([]);
@@ -44,25 +49,79 @@ export function EmulatorPlayer({
   const [saveDescription, setSaveDescription] = useState('');
   const [saving, setSaving] = useState(false);
   const [loadingSaves, setLoadingSaves] = useState(false);
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [saveStateToDelete, setSaveStateToDelete] = useState<{ id: string; slot: number } | null>(null);
+  const retryCountRef = useRef(0);
+  const maxRetries = 3;
+  const lastScreenshotRef = useRef<number>(0);
 
-  // System to EmulatorJS core mapping
-  const getEmulatorCore = (sys: string): string => {
+  // Memoize emulator core mapping to avoid recreation on every render
+  const emulatorCore = useMemo(() => {
     const coreMap: Record<string, string> = {
-      nes: 'nes',
-      snes: 'snes',
-      gb: 'gb',
-      gbc: 'gbc',
-      gba: 'gba',
-      n64: 'n64',
-      nds: 'nds',
-      genesis: 'segaMD',
-      sms: 'segaMS',
-      gg: 'segaGG',
-      psx: 'psx',
-      psp: 'psp',
+      // Nintendo
+      nes: 'fceumm',                    // NES / Famicom
+      snes: 'snes9x',                   // Super Nintendo
+      n64: 'mupen64plus_next',          // Nintendo 64
+      gba: 'mgba',                      // Game Boy Advance
+      nds: 'melonds',                   // Nintendo DS
+      gb: 'gambatte',                   // Game Boy
+      gbc: 'gambatte',                  // Game Boy Color
+      vb: 'beetle_vb',                  // Virtual Boy
+
+      // Sega
+      genesis: 'genesis_plus_gx',       // Genesis / Mega Drive
+      megadrive: 'genesis_plus_gx',     // Mega Drive
+      sega32x: 'picodrive',             // Sega 32X
+      segacd: 'genesis_plus_gx',        // Sega CD
+      saturn: 'yabause',                // Sega Saturn
+      sms: 'smsplus',                   // Master System
+      gg: 'genesis_plus_gx',            // Game Gear
+
+      // Sony
+      psx: 'mednafen_psx_hw',           // PlayStation 1
+      ps1: 'mednafen_psx_hw',           // PlayStation 1 (alt)
+      psp: 'ppsspp',                    // PlayStation Portable
+
+      // Atari
+      atari2600: 'stella2014',          // Atari 2600
+      atari5200: 'a5200',               // Atari 5200
+      atari7800: 'prosystem',           // Atari 7800
+      lynx: 'handy',                    // Atari Lynx
+      jaguar: 'virtualjaguar',          // Atari Jaguar
+
+      // Other Consoles
+      '3do': 'opera',                   // 3DO
+      colecovision: 'gearcoleco',       // ColecoVision
+      ngp: 'mednafen_ngp',              // Neo Geo Pocket
+      pce: 'mednafen_pce',              // PC Engine / TurboGrafx-16
+      pcfx: 'mednafen_pcfx',            // PC-FX
+      ws: 'mednafen_wswan',             // WonderSwan
+
+      // Computers
+      msx: 'fmsx',                      // MSX
+      amstradcpc: 'cap32',              // Amstrad CPC
+      zxspectrum: 'fuse',               // ZX Spectrum
+      c64: 'vice_x64',                  // Commodore 64
+      c128: 'vice_x128',                // Commodore 128
+      vic20: 'vice_xvic',               // VIC-20
+      amiga: 'puae',                    // Amiga
+      dos: 'dosbox_pure',               // DOS
+
+      // Arcade
+      arcade: 'fbneo',                  // Arcade (FBNeo)
+      mame: 'mame2003_plus',            // MAME
+      neogeo: 'fbneo',                  // Neo Geo
+      cps1: 'fbalpha2012_cps1',         // CPS1
+      cps2: 'fbalpha2012_cps2',         // CPS2
+
+      // Other
+      doom: 'prboom',                   // Doom
+      '81': '81',                       // Sinclair ZX81
+      cdi: 'same_cdi',                  // Philips CD-i
     };
-    return coreMap[sys] || sys;
-  };
+    return coreMap[system] || system;
+  }, [system]);
 
   useEffect(() => {
     // Lock screen orientation to portrait on mobile
@@ -87,7 +146,7 @@ export function EmulatorPlayer({
     script.onload = () => {
       // Initialize emulator configuration
       // The loader.js will automatically create the emulator instance
-      initializeEmulator();
+      void initializeEmulator();
     };
 
     script.onerror = () => {
@@ -98,7 +157,7 @@ export function EmulatorPlayer({
     document.body.appendChild(script);
 
     return () => {
-      // Cleanup
+      // Cleanup script
       if (document.body.contains(script)) {
         document.body.removeChild(script);
       }
@@ -119,42 +178,90 @@ export function EmulatorPlayer({
     };
   }, [gameId, romUrl, system]);
 
-  const initializeEmulator = () => {
+  const initializeEmulator = async () => {
     try {
-      // Configure EmulatorJS
-      window.EJS_core = getEmulatorCore(system);
+      setLoadingStatus('Initializing emulator...');
+      setLoadingProgress(10);
+
+      // Configure EmulatorJS - let it handle core loading
+      window.EJS_core = emulatorCore;
       window.EJS_gameUrl = romUrl;
-      // Use local cores (downloaded from GitHub release v4.2.3)
       window.EJS_pathtodata = '/emulatorjs/data/';
       window.EJS_gameID = gameId;
       window.EJS_gameName = gameTitle;
-      window.EJS_color = '#0F4C81'; // Captain Bitbeard ocean blue
+      window.EJS_color = '#0F4C81';
       window.EJS_startOnLoaded = true;
-      window.EJS_letterBox = '#191970'; // Night sky background
-
-      // Don't set EJS_VirtualGamepadSettings - let EmulatorJS use built-in defaults
-      // EmulatorJS automatically shows virtual gamepad on mobile devices
-      // and uses default layouts for each system (NES, SNES, GBA, etc.)
-
-      // Set the player container selector
-      // The loader.js will automatically create the emulator instance
+      window.EJS_letterBox = '#191970';
       window.EJS_player = '#emulator-container';
+
+      setLoadingProgress(30);
+      setLoadingStatus('Loading game...');
+
+      // Monitor loading progress
+      const progressInterval = setInterval(() => {
+        if (window.EJS_emulator?.gameManager?.started) {
+          setLoadingProgress(100);
+          setLoadingStatus('Starting game...');
+          clearInterval(progressInterval);
+        } else if (loadingProgress < 90) {
+          setLoadingProgress((prev) => Math.min(prev + 3, 90));
+        }
+      }, 1000);
 
       // Set up ready callback
       window.EJS_ready = () => {
+        clearInterval(progressInterval);
+        setLoadingProgress(100);
+        setLoadingStatus('Ready!');
         setLoading(false);
+        retryCountRef.current = 0;
         console.log('🎮 Emulator ready');
         if (user) {
           loadSaveStates();
         }
       };
+
+      // Timeout handler with retry
+      setTimeout(() => {
+        if (loading && !window.EJS_emulator?.gameManager?.started) {
+          clearInterval(progressInterval);
+          if (retryCountRef.current < maxRetries) {
+            retryCountRef.current++;
+            const delay = Math.pow(2, retryCountRef.current) * 1000;
+            setLoadingStatus(
+              `Connection error. Retrying in ${delay / 1000}s... (${retryCountRef.current}/${maxRetries})`
+            );
+            setTimeout(() => {
+              setLoadingProgress(0);
+              void initializeEmulator();
+            }, delay);
+          } else {
+            setError('Failed to load game after multiple attempts. Please check your connection.');
+            setLoading(false);
+          }
+        }
+      }, 60000);
     } catch (err: any) {
-      setError(err.message || 'Failed to initialize emulator');
-      setLoading(false);
+      console.error('Emulator initialization error:', err);
+
+      if (retryCountRef.current < maxRetries) {
+        retryCountRef.current++;
+        const delay = Math.pow(2, retryCountRef.current) * 1000;
+        setLoadingStatus(
+          `Error: ${err.message}. Retrying in ${delay / 1000}s... (${retryCountRef.current}/${maxRetries})`
+        );
+        setTimeout(() => {
+          setLoadingProgress(0);
+          void initializeEmulator();
+        }, delay);
+      } else {
+        setError(err.message || 'Failed to initialize emulator');
+        setLoading(false);
+      }
     }
   };
 
-  const loadSaveStates = async () => {
+  const loadSaveStates = useCallback(async () => {
     if (!user) return;
 
     setLoadingSaves(true);
@@ -166,11 +273,11 @@ export function EmulatorPlayer({
     } finally {
       setLoadingSaves(false);
     }
-  };
+  }, [user, gameId]);
 
   const handleSaveState = async () => {
     if (!user || !window.EJS_emulator) {
-      alert('Please log in to save your progress');
+      toast.warning('Login Required', 'Please log in to save your progress');
       return;
     }
 
@@ -209,9 +316,9 @@ export function EmulatorPlayer({
 
       // Reset form
       setSaveDescription('');
-      alert(`Saved to slot ${selectedSlot}!`);
+      toast.success('Game Saved', `Progress saved to slot ${selectedSlot}`);
     } catch (err: any) {
-      alert(err.response?.data?.message || 'Failed to save state');
+      toast.error(err, 'Failed to save progress');
     } finally {
       setSaving(false);
     }
@@ -219,7 +326,7 @@ export function EmulatorPlayer({
 
   const handleLoadState = async (saveState: SaveState) => {
     if (!window.EJS_emulator) {
-      alert('Emulator not ready');
+      toast.warning('Not Ready', 'Emulator is still loading. Please wait a moment.');
       return;
     }
 
@@ -232,45 +339,107 @@ export function EmulatorPlayer({
       window.EJS_emulator.gameManager.loadState(new Uint8Array(arrayBuffer));
 
       setShowSaveMenu(false);
-      alert('State loaded successfully!');
+      toast.success('Game Loaded', `Progress restored from slot ${saveState.slot}`);
     } catch (err: any) {
-      alert(err.response?.data?.message || 'Failed to load state');
+      toast.error(err, 'Failed to load progress');
     }
   };
 
-  const handleDeleteState = async (id: string) => {
-    if (!window.confirm('Delete this save state?')) return;
+  const handleDeleteState = (id: string, slot: number) => {
+    setSaveStateToDelete({ id, slot });
+    setShowDeleteConfirm(true);
+  };
+
+  const confirmDeleteState = async () => {
+    if (!saveStateToDelete) return;
 
     try {
-      await saveStateApi.deleteSaveState(id);
+      await saveStateApi.deleteSaveState(saveStateToDelete.id);
       await loadSaveStates();
+      toast.success('Save Deleted', `Slot ${saveStateToDelete.slot} removed successfully`);
     } catch (err: any) {
-      alert(err.response?.data?.message || 'Failed to delete state');
+      toast.error(err, 'Failed to delete save state');
     }
   };
+
+  const handleFullscreen = useCallback(() => {
+    const container = containerRef.current;
+    if (!container) return;
+
+    if (!document.fullscreenElement) {
+      container.requestFullscreen().then(() => {
+        setIsFullscreen(true);
+      }).catch((err) => {
+        console.error('Failed to enter fullscreen:', err);
+      });
+    } else {
+      document.exitFullscreen().then(() => {
+        setIsFullscreen(false);
+      }).catch((err) => {
+        console.error('Failed to exit fullscreen:', err);
+      });
+    }
+  }, []);
+
+  const handleScreenshot = useCallback(() => {
+    // Throttle screenshots to prevent spam (1 per second)
+    const now = Date.now();
+    if (now - lastScreenshotRef.current < 1000) {
+      toast.info('Please Wait', 'Screenshots are limited to one per second');
+      return;
+    }
+    lastScreenshotRef.current = now;
+
+    try {
+      const canvas = document.querySelector('#emulator-container canvas') as HTMLCanvasElement;
+      if (!canvas) {
+        toast.error(new Error('Canvas not found'), 'Screenshot Failed');
+        return;
+      }
+
+      canvas.toBlob((blob) => {
+        if (!blob) {
+          toast.error(new Error('Failed to create screenshot'), 'Screenshot Failed');
+          return;
+        }
+
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `${gameTitle}_${Date.now()}.png`;
+        link.click();
+        URL.revokeObjectURL(url);
+        toast.success('Screenshot Saved', `${gameTitle}_${Date.now()}.png`);
+      });
+    } catch (err) {
+      console.error('Screenshot error:', err);
+      toast.error(err, 'Screenshot Failed');
+    }
+  }, [gameTitle]);
+
+  // Monitor fullscreen changes
+  useEffect(() => {
+    const handleFullscreenChange = () => {
+      setIsFullscreen(!!document.fullscreenElement);
+    };
+
+    document.addEventListener('fullscreenchange', handleFullscreenChange);
+    return () => document.removeEventListener('fullscreenchange', handleFullscreenChange);
+  }, []);
 
   return (
     <div className="gameplay-mode bg-night-sky">
-      {/* Exit Button */}
-      {onExit && (
-        <button
-          onClick={onExit}
-          className="fixed right-4 top-4 z-50 border-4 border-blood-red bg-blood-red px-4 py-2 text-xs text-skull-white"
-          style={{ imageRendering: 'pixelated' }}
-        >
-          ✕ EXIT
-        </button>
-      )}
-
-      {/* Save/Load Button */}
-      {user && !loading && !error && (
-        <button
-          onClick={() => setShowSaveMenu(!showSaveMenu)}
-          className="fixed left-4 top-4 z-50 border-4 border-pirate-gold bg-pirate-gold px-4 py-2 text-xs text-ocean-dark"
-          style={{ imageRendering: 'pixelated' }}
-        >
-          💾 SAVE/LOAD
-        </button>
+      {/* EmulatorJS Overlay Controls */}
+      {!loading && !error && onExit && (
+        <EmulatorOverlay
+          onSave={() => setShowSaveMenu(true)}
+          onLoad={() => setShowSaveMenu(true)}
+          onScreenshot={handleScreenshot}
+          onFullscreen={handleFullscreen}
+          onExit={onExit}
+          isFullscreen={isFullscreen}
+          emulatorReady={!loading && !error}
+        />
       )}
 
       {/* Save/Load Menu */}
@@ -373,7 +542,7 @@ export function EmulatorPlayer({
                           📂 LOAD
                         </button>
                         <button
-                          onClick={() => handleDeleteState(saveState.id)}
+                          onClick={() => handleDeleteState(saveState.id, saveState.slot)}
                           className="btn-retro bg-blood-red text-[10px] px-2 py-1"
                         >
                           🗑️
@@ -391,14 +560,31 @@ export function EmulatorPlayer({
       {/* Loading State */}
       {loading && (
         <div className="flex h-full items-center justify-center">
-          <div className="text-center">
+          <div className="text-center max-w-md mx-auto px-4">
             <div className="loading-spinner mx-auto mb-4"></div>
-            <p className="text-pixel text-sm text-skull-white">
+            <p className="text-pixel text-sm text-skull-white mb-2">
               Loading {gameTitle}...
             </p>
-            <p className="text-pixel mt-2 text-xs text-sand-beige">
+            <p className="text-pixel text-xs text-sand-beige mb-4">
               System: {system.toUpperCase()}
             </p>
+
+            {/* Progress Bar */}
+            <div className="w-full h-6 border-4 border-pirate-gold bg-ocean-dark mb-2">
+              <div
+                className="h-full bg-pirate-gold transition-all duration-300"
+                style={{ width: `${loadingProgress}%` }}
+              />
+            </div>
+            <p className="text-pixel text-xs text-pirate-gold">
+              {loadingProgress}% - {loadingStatus}
+            </p>
+
+            {retryCountRef.current > 0 && (
+              <p className="text-pixel text-xs text-blood-red mt-2">
+                Retry attempt {retryCountRef.current}/{maxRetries}
+              </p>
+            )}
           </div>
         </div>
       )}
@@ -427,6 +613,29 @@ export function EmulatorPlayer({
         className="h-full w-full"
         style={{ display: loading || error ? 'none' : 'block' }}
       />
+
+      {/* Delete Save State Confirmation Modal */}
+      {saveStateToDelete && (
+        <ConfirmationModal
+          isOpen={showDeleteConfirm}
+          onClose={() => setShowDeleteConfirm(false)}
+          onConfirm={confirmDeleteState}
+          title="Delete Save State"
+          message={`Are you sure you want to delete save slot ${saveStateToDelete.slot}? This action cannot be undone.`}
+          confirmText="DELETE SAVE"
+          cancelText="CANCEL"
+          type="danger"
+        >
+          <div className="text-pixel text-sm text-ocean-dark">
+            <div className="font-bold mb-2">This will permanently delete:</div>
+            <ul className="text-xs text-left space-y-1">
+              <li>• Save slot {saveStateToDelete.slot}</li>
+              <li>• All progress saved in this slot</li>
+              <li>• Screenshot (if any)</li>
+            </ul>
+          </div>
+        </ConfirmationModal>
+      )}
     </div>
   );
 }

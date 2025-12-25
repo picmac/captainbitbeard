@@ -2,11 +2,15 @@ import { useState, useEffect } from 'react';
 import { Link, useParams, useNavigate } from 'react-router-dom';
 import { userProfileApi, type UserProfile } from '../services/api';
 import { useAuth } from '../context/AuthContext';
+import { toast } from '../utils/toast';
+import { useOnboarding } from '../components/OnboardingTour';
+import { PageTitle } from '../components/PageTitle';
 
 export function UserProfilePage() {
   const { user } = useAuth();
   const { userId } = useParams<{ userId?: string }>();
   const navigate = useNavigate();
+  const { resetTour } = useOnboarding();
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -54,8 +58,9 @@ export function UserProfilePage() {
       });
       setProfile(response.data.profile);
       setEditing(false);
+      toast.success('Profile Updated', 'Your profile has been saved');
     } catch (err: any) {
-      alert(err.response?.data?.message || 'Failed to update profile');
+      toast.error(err, 'Failed to update profile');
     } finally {
       setSaving(false);
     }
@@ -96,6 +101,11 @@ export function UserProfilePage() {
 
   return (
     <div className="min-h-screen p-4">
+      <PageTitle
+        title={isOwnProfile ? 'My Profile' : `${profile.user.username}'s Profile`}
+        description={profile.bio || `View ${isOwnProfile ? 'your' : profile.user.username + "'s"} gaming stats and achievements`}
+      />
+
       {/* Header */}
       <div className="mb-6">
         <h1 className="text-pixel mb-4 text-center text-2xl text-pirate-gold">
@@ -212,6 +222,28 @@ export function UserProfilePage() {
               <div className="border-2 border-wood-brown bg-white p-4 min-h-[100px]">
                 <p className="text-pixel text-sm text-wood-brown whitespace-pre-wrap">
                   {profile.bio || 'No bio yet...'}
+                </p>
+              </div>
+            </div>
+          )}
+
+          {/* Settings Section (only for own profile) */}
+          {isOwnProfile && !editing && (
+            <div className="mt-6 border-t-2 border-wood-brown pt-6">
+              <h3 className="text-pixel text-sm text-wood-brown mb-3">⚙️ SETTINGS</h3>
+              <div className="space-y-2">
+                <button
+                  onClick={() => {
+                    resetTour();
+                    navigate('/library');
+                    toast.success('Tour Restarted', 'The onboarding tour will start when you return to the library');
+                  }}
+                  className="btn-retro text-xs w-full"
+                >
+                  🎓 RESTART ONBOARDING TOUR
+                </button>
+                <p className="text-pixel text-[10px] text-wood-brown">
+                  Replay the interactive tutorial to learn the basics again
                 </p>
               </div>
             </div>

@@ -1,5 +1,8 @@
 import { useState, useEffect } from 'react';
 import { type BiosFile, biosApi } from '../services/api';
+import { toast } from '../utils/toast';
+import { ConfirmationModal } from './ConfirmationModal';
+import { Tooltip, InfoIcon } from './Tooltip';
 
 export function BiosManager() {
   const [biosFiles, setBiosFiles] = useState<BiosFile[]>([]);
@@ -18,6 +21,15 @@ export function BiosManager() {
 
   // Filter state
   const [filterSystem, setFilterSystem] = useState('');
+
+  // Confirmation modal state
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [biosToDelete, setBiosToDelete] = useState<{ id: string; fileName: string } | null>(null);
+
+  // MD5 verification modal state
+  const [showMd5Modal, setShowMd5Modal] = useState(false);
+  const [biosToVerify, setBiosToVerify] = useState<{ id: string; fileName: string } | null>(null);
+  const [md5Input, setMd5Input] = useState('');
 
   useEffect(() => {
     loadData();
@@ -43,12 +55,12 @@ export function BiosManager() {
     e.preventDefault();
 
     if (!biosFile) {
-      alert('Please select a BIOS file');
+      toast.warning('No File Selected', 'Please select a BIOS file');
       return;
     }
 
     if (!system) {
-      alert('Please select a system');
+      toast.warning('No System Selected', 'Please select a system');
       return;
     }
 
@@ -65,48 +77,58 @@ export function BiosManager() {
 
       await biosApi.uploadBiosFile(formData);
 
-      alert('✅ BIOS file uploaded successfully!');
+      toast.success('BIOS Uploaded', 'BIOS file uploaded successfully');
       setShowUploadForm(false);
       resetForm();
       loadData();
     } catch (error: any) {
       console.error('Failed to upload BIOS:', error);
-      alert(`❌ ${error.response?.data?.message || 'Failed to upload BIOS file'}`);
+      toast.error(error, 'Failed to upload BIOS file');
     } finally {
       setUploading(false);
     }
   };
 
-  const handleDeleteBios = async (id: string, fileName: string) => {
-    if (!confirm(`Delete BIOS file "${fileName}"? This cannot be undone!`)) {
-      return;
-    }
+  const handleDeleteBios = (id: string, fileName: string) => {
+    setBiosToDelete({ id, fileName });
+    setShowDeleteConfirm(true);
+  };
+
+  const confirmDeleteBios = async () => {
+    if (!biosToDelete) return;
 
     try {
-      await biosApi.deleteBiosFile(id);
-      alert('✅ BIOS file deleted successfully!');
+      await biosApi.deleteBiosFile(biosToDelete.id);
+      toast.success('BIOS Deleted', `${biosToDelete.fileName} has been removed`);
       loadData();
     } catch (error) {
       console.error('Failed to delete BIOS:', error);
-      alert('❌ Failed to delete BIOS file');
+      toast.error(error, 'Failed to delete BIOS file');
     }
   };
 
-  const handleVerifyMd5 = async (id: string, fileName: string) => {
-    const expectedMd5 = prompt(`Enter expected MD5 hash for ${fileName}:`);
-    if (!expectedMd5) return;
+  const handleVerifyMd5 = (id: string, fileName: string) => {
+    setBiosToVerify({ id, fileName });
+    setMd5Input('');
+    setShowMd5Modal(true);
+  };
+
+  const confirmVerifyMd5 = async () => {
+    if (!biosToVerify || !md5Input.trim()) return;
 
     try {
-      const response = await biosApi.verifyBiosMd5(id, expectedMd5);
+      const response = await biosApi.verifyBiosMd5(biosToVerify.id, md5Input.trim());
       if (response.data.isValid) {
-        alert('✅ MD5 hash is valid!');
+        toast.success('MD5 Valid', 'MD5 hash matches the BIOS file');
       } else {
-        alert('❌ MD5 hash does NOT match!');
+        toast.error('MD5 Mismatch', 'MD5 hash does NOT match the BIOS file');
       }
+      setShowMd5Modal(false);
+      setMd5Input('');
       loadData();
     } catch (error) {
       console.error('Failed to verify MD5:', error);
-      alert('❌ Failed to verify MD5 hash');
+      toast.error(error, 'Failed to verify MD5 hash');
     }
   };
 
@@ -149,7 +171,25 @@ export function BiosManager() {
       {/* Header */}
       <div className="flex items-center justify-between mb-4">
         <div>
-          <h3 className="text-pixel text-lg text-skull-white">💾 BIOS FILE MANAGEMENT</h3>
+          <div className="flex items-center gap-2">
+            <h3 className="text-pixel text-lg text-skull-white">💾 BIOS FILE MANAGEMENT</h3>
+            <Tooltip
+              content={
+                <div className="space-y-2">
+                  <p className="font-bold">What are BIOS files?</p>
+                  <p>
+                    BIOS (Basic Input/Output System) files are system firmware required by certain
+                    consoles to run games. These files contain essential code for emulation.
+                  </p>
+                  <p className="text-[10px] text-pirate-gold">
+                    Required for: PlayStation, Sega CD, Saturn, and some other systems
+                  </p>
+                </div>
+              }
+            >
+              <InfoIcon />
+            </Tooltip>
+          </div>
           <p className="text-pixel text-xs text-skull-white/70 mt-1">
             {biosFiles.length} BIOS files • {systemsRequiringBios.length} systems supported
           </p>
@@ -201,7 +241,12 @@ export function BiosManager() {
 
             <div className="grid grid-cols-2 gap-2">
               <div>
-                <label className="text-pixel text-xs text-ocean-dark block mb-1">Region:</label>
+                <div className="flex items-center gap-1 mb-1">
+                  <label className="text-pixel text-xs text-ocean-dark">Region:</label>
+                  <Tooltip content="The geographic region this BIOS is from (e.g., USA, Japan, Europe). Different regions may have slightly different firmware.">
+                    <InfoIcon className="w-3 h-3" />
+                  </Tooltip>
+                </div>
                 <input
                   type="text"
                   value={region}
@@ -212,7 +257,12 @@ export function BiosManager() {
               </div>
 
               <div>
-                <label className="text-pixel text-xs text-ocean-dark block mb-1">Version:</label>
+                <div className="flex items-center gap-1 mb-1">
+                  <label className="text-pixel text-xs text-ocean-dark">Version:</label>
+                  <Tooltip content="The BIOS version or model number (e.g., SCPH-1001 for PlayStation). Helps identify which BIOS revision you have.">
+                    <InfoIcon className="w-3 h-3" />
+                  </Tooltip>
+                </div>
                 <input
                   type="text"
                   value={version}
@@ -367,6 +417,59 @@ export function BiosManager() {
               </div>
             </div>
           ))}
+        </div>
+      )}
+
+      {/* Confirmation Modals */}
+      <ConfirmationModal
+        isOpen={showDeleteConfirm}
+        onClose={() => setShowDeleteConfirm(false)}
+        onConfirm={confirmDeleteBios}
+        title="Delete BIOS File"
+        message={`Delete BIOS file "${biosToDelete?.fileName}"? This action cannot be undone.`}
+        confirmText="DELETE"
+        type="danger"
+      />
+
+      {/* MD5 Verification Modal */}
+      {showMd5Modal && biosToVerify && (
+        <div className="fixed inset-0 bg-black/80 flex items-center justify-center p-4 z-50">
+          <div className="border-4 border-wood-brown bg-sand-beige p-6 max-w-md w-full">
+            <h2 className="text-pixel text-sm text-ocean-dark mb-4">
+              🔐 VERIFY MD5 HASH
+            </h2>
+            <p className="text-pixel text-xs text-wood-brown mb-4">
+              Enter the expected MD5 hash for: <br />
+              <strong>{biosToVerify.fileName}</strong>
+            </p>
+            <input
+              type="text"
+              value={md5Input}
+              onChange={(e) => setMd5Input(e.target.value)}
+              placeholder="Enter MD5 hash (32 characters)"
+              className="w-full border-2 border-wood-brown bg-white p-2 mb-4 text-pixel text-xs text-ocean-dark font-mono"
+              maxLength={32}
+              autoFocus
+            />
+            <div className="flex gap-2">
+              <button
+                onClick={confirmVerifyMd5}
+                disabled={md5Input.trim().length !== 32}
+                className="btn-retro text-xs flex-1"
+              >
+                ✓ VERIFY
+              </button>
+              <button
+                onClick={() => {
+                  setShowMd5Modal(false);
+                  setMd5Input('');
+                }}
+                className="btn-retro bg-blood-red text-xs flex-1"
+              >
+                ✕ CANCEL
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>

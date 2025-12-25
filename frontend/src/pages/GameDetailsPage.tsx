@@ -4,10 +4,17 @@ import { gameApi, screenshotApi, type Game, type Screenshot } from '../services/
 import { GameMetadataDisplay } from '../components/GameMetadataDisplay';
 import { FavoriteButton } from '../components/FavoriteButton';
 import { AddToCollectionModal } from '../components/AddToCollectionModal';
-import { ImageGallery } from '../components/ImageGallery';
 import { ScreenshotUploadModal } from '../components/ScreenshotUploadModal';
 import { GameVersionManager } from '../components/GameVersionManager';
+import { EnhancedVideoPlayer } from '../components/EnhancedVideoPlayer';
+import { BackgroundMusicPlayer } from '../components/BackgroundMusicPlayer';
+import { CategorizedScreenshotGallery } from '../components/CategorizedScreenshotGallery';
+import { BoxArt3DViewer } from '../components/BoxArt3DViewer';
+import { EnhancedMediaUploadModal } from '../components/EnhancedMediaUploadModal';
+import { ConfirmationModal } from '../components/ConfirmationModal';
 import { useAuth } from '../context/AuthContext';
+import { toast } from '../utils/toast';
+import { PageTitle } from '../components/PageTitle';
 
 export function GameDetailsPage() {
   const { gameId } = useParams<{ gameId: string }>();
@@ -19,6 +26,9 @@ export function GameDetailsPage() {
   const [showCollectionModal, setShowCollectionModal] = useState(false);
   const [screenshots, setScreenshots] = useState<Screenshot[]>([]);
   const [showUploadModal, setShowUploadModal] = useState(false);
+  const [showEnhancedMediaModal, setShowEnhancedMediaModal] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [showScrapeConfirm, setShowScrapeConfirm] = useState(false);
 
   useEffect(() => {
     if (!gameId) {
@@ -64,33 +74,35 @@ export function GameDetailsPage() {
 
   const handleDelete = async () => {
     if (!game) return;
+    setShowDeleteConfirm(true);
+  };
 
-    if (!confirm(`Delete "${game.title}"? This cannot be undone!`)) {
-      return;
-    }
+  const confirmDelete = async () => {
+    if (!game) return;
 
     try {
       await gameApi.deleteGame(game.id);
-      alert(`✅ ${game.title} deleted successfully!`);
+      toast.success('Game Deleted', `${game.title} has been removed from your library`);
       navigate('/library');
     } catch (error) {
-      alert(`❌ Failed to delete game: ${error}`);
+      toast.error(error, 'Failed to delete game');
     }
   };
 
   const handleScrapeMetadata = async () => {
     if (!game) return;
+    setShowScrapeConfirm(true);
+  };
 
-    if (!confirm(`Fetch metadata and cover for "${game.title}"?`)) {
-      return;
-    }
+  const confirmScrape = async () => {
+    if (!game) return;
 
     try {
       await gameApi.scrapeMetadata(game.id);
-      alert(`✅ Metadata fetched successfully!`);
+      toast.success('Metadata Updated', 'Game information and cover art have been refreshed');
       loadGame(); // Refresh
     } catch (error) {
-      alert(`❌ Failed to fetch metadata: ${error}`);
+      toast.error(error, 'Failed to fetch metadata');
     }
   };
 
@@ -120,6 +132,11 @@ export function GameDetailsPage() {
 
   return (
     <div className="min-h-screen p-4">
+      <PageTitle
+        title={game.title}
+        description={`Play ${game.title} for ${game.system} - View screenshots, manage save states, and more`}
+      />
+
       <div className="max-w-6xl mx-auto">
         {/* Header */}
         <div className="mb-6">
@@ -196,6 +213,12 @@ export function GameDetailsPage() {
               >
                 📸 ADD SCREENSHOTS
               </button>
+              <button
+                onClick={() => setShowEnhancedMediaModal(true)}
+                className="btn-retro text-sm bg-treasure-green"
+              >
+                🎬 UPLOAD MEDIA
+              </button>
               <button onClick={handleDelete} className="btn-retro text-sm bg-blood-red">
                 🗑️ DELETE GAME
               </button>
@@ -203,41 +226,40 @@ export function GameDetailsPage() {
           )}
         </div>
 
-        {/* Image Gallery */}
-        {(screenshots.length > 0 ||
-          game.coverUrl ||
-          game.boxArtUrl ||
-          game.backgroundUrl ||
-          game.logoUrl) && (
+        {/* 3D Box Art Viewer */}
+        {(game.coverUrl || game.boxArtUrl) && (
           <div className="mt-8">
             <div className="border-4 border-wood-brown bg-sand-beige p-6">
-              <h2 className="text-pixel text-lg text-ocean-dark mb-4">📸 MEDIA GALLERY</h2>
-              <ImageGallery
-                screenshots={screenshots}
-                coverUrl={game.coverUrl}
-                boxArtUrl={game.boxArtUrl}
-                backgroundUrl={game.backgroundUrl}
-                logoUrl={game.logoUrl}
+              <h2 className="text-pixel text-lg text-ocean-dark mb-4">📦 3D BOX ART</h2>
+              <BoxArt3DViewer
+                frontCoverUrl={game.coverUrl || undefined}
+                backCoverUrl={game.boxArtUrl || undefined}
+                gameName={game.title}
               />
             </div>
           </div>
         )}
 
-        {/* Video Section */}
+        {/* Categorized Screenshot Gallery */}
+        {screenshots.length > 0 && (
+          <div className="mt-8">
+            <div className="border-4 border-wood-brown bg-sand-beige p-6">
+              <h2 className="text-pixel text-lg text-ocean-dark mb-4">📸 SCREENSHOTS</h2>
+              <CategorizedScreenshotGallery screenshots={screenshots} />
+            </div>
+          </div>
+        )}
+
+        {/* Enhanced Video Player */}
         {game.videoUrl && (
           <div className="mt-8">
             <div className="border-4 border-wood-brown bg-sand-beige p-6">
-              <h2 className="text-pixel text-lg text-ocean-dark mb-4">🎬 VIDEO</h2>
-              <div className="aspect-video bg-black">
-                <video
-                  src={game.videoUrl}
-                  controls
-                  className="w-full h-full"
-                  poster={game.coverUrl || undefined}
-                >
-                  Your browser does not support the video tag.
-                </video>
-              </div>
+              <h2 className="text-pixel text-lg text-ocean-dark mb-4">🎬 TRAILER</h2>
+              <EnhancedVideoPlayer
+                videoUrl={game.videoUrl}
+                posterUrl={game.coverUrl || undefined}
+                title={`${game.title} Trailer`}
+              />
             </div>
           </div>
         )}
@@ -257,7 +279,8 @@ export function GameDetailsPage() {
           gameName={game.title}
           onClose={() => setShowCollectionModal(false)}
           onSuccess={() => {
-            alert(`✅ ${game.title} added to collection!`);
+            toast.success('Added to Collection', `${game.title} has been added to your collection`);
+            setShowCollectionModal(false);
           }}
         />
       )}
@@ -268,6 +291,72 @@ export function GameDetailsPage() {
           gameId={game.id}
           onClose={() => setShowUploadModal(false)}
           onSuccess={loadScreenshots}
+        />
+      )}
+
+      {/* Enhanced Media Upload Modal */}
+      {showEnhancedMediaModal && game && (
+        <EnhancedMediaUploadModal
+          gameId={game.id}
+          gameName={game.title}
+          onClose={() => setShowEnhancedMediaModal(false)}
+          onSuccess={loadGame}
+        />
+      )}
+
+      {/* Background Music Player */}
+      {game?.backgroundMusicUrl && (
+        <BackgroundMusicPlayer
+          musicUrl={game.backgroundMusicUrl}
+          gameName={game.title}
+          autoPlay={false}
+          loop={true}
+        />
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {game && (
+        <ConfirmationModal
+          isOpen={showDeleteConfirm}
+          onClose={() => setShowDeleteConfirm(false)}
+          onConfirm={confirmDelete}
+          title="Delete Game"
+          message={`Are you sure you want to delete "${game.title}"? This action cannot be undone and will remove all associated save states, screenshots, and metadata.`}
+          confirmText="DELETE"
+          cancelText="CANCEL"
+          type="danger"
+        >
+          <div className="flex items-center gap-3">
+            {game.coverUrl && (
+              <img
+                src={game.coverUrl}
+                alt={game.title}
+                className="h-16 w-16 border-2 border-wood-brown object-cover"
+              />
+            )}
+            <div>
+              <div className="text-pixel text-sm text-ocean-dark font-bold">
+                {game.title}
+              </div>
+              <div className="text-pixel text-xs text-wood-brown">
+                {game.system?.toUpperCase()}
+              </div>
+            </div>
+          </div>
+        </ConfirmationModal>
+      )}
+
+      {/* Scrape Metadata Confirmation Modal */}
+      {game && (
+        <ConfirmationModal
+          isOpen={showScrapeConfirm}
+          onClose={() => setShowScrapeConfirm(false)}
+          onConfirm={confirmScrape}
+          title="Fetch Metadata"
+          message={`Fetch updated game information and cover art for "${game.title}"? This will overwrite existing metadata.`}
+          confirmText="FETCH"
+          cancelText="CANCEL"
+          type="info"
         />
       )}
     </div>

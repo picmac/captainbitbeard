@@ -2,6 +2,9 @@ import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { saveStateApi, type SaveState } from '../services/api';
 import { useAuth } from '../context/AuthContext';
+import { toast } from '../utils/toast';
+import { ConfirmationModal } from '../components/ConfirmationModal';
+import { PageTitle } from '../components/PageTitle';
 
 export function SaveStatesPage() {
   const { user } = useAuth();
@@ -9,6 +12,8 @@ export function SaveStatesPage() {
   const [saveStates, setSaveStates] = useState<SaveState[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [selectedSaveState, setSelectedSaveState] = useState<{ id: string; slot: number; game: string } | null>(null);
 
   useEffect(() => {
     if (!user) {
@@ -30,14 +35,20 @@ export function SaveStatesPage() {
     }
   };
 
-  const handleDelete = async (id: string) => {
-    if (!window.confirm('Delete this save state?')) return;
+  const handleDelete = (id: string, slot: number, gameTitle: string) => {
+    setSelectedSaveState({ id, slot, game: gameTitle });
+    setShowDeleteConfirm(true);
+  };
+
+  const confirmDelete = async () => {
+    if (!selectedSaveState) return;
 
     try {
-      await saveStateApi.deleteSaveState(id);
+      await saveStateApi.deleteSaveState(selectedSaveState.id);
       await loadSaveStates();
+      toast.success('Save Deleted', `Slot ${selectedSaveState.slot} has been removed`);
     } catch (err: any) {
-      alert(err.response?.data?.message || 'Failed to delete save state');
+      toast.error(err, 'Failed to delete save state');
     }
   };
 
@@ -47,6 +58,11 @@ export function SaveStatesPage() {
 
   return (
     <div className="min-h-screen p-4">
+      <PageTitle
+        title="My Save States"
+        description="View and manage all your game save states in one place"
+      />
+
       {/* Header */}
       <div className="mb-6">
         <h1 className="text-pixel mb-4 text-center text-2xl text-pirate-gold">
@@ -163,7 +179,7 @@ export function SaveStatesPage() {
 
                           {/* Delete Button */}
                           <button
-                            onClick={() => handleDelete(saveState.id)}
+                            onClick={() => handleDelete(saveState.id, saveState.slot, game.title)}
                             className="btn-retro bg-blood-red text-[10px] px-2 self-start"
                           >
                             🗑️
@@ -177,6 +193,29 @@ export function SaveStatesPage() {
           </div>
         )}
       </div>
+
+      {/* Delete Confirmation Modal */}
+      {selectedSaveState && (
+        <ConfirmationModal
+          isOpen={showDeleteConfirm}
+          onClose={() => setShowDeleteConfirm(false)}
+          onConfirm={confirmDelete}
+          title="Delete Save State"
+          message={`Are you sure you want to delete save slot ${selectedSaveState.slot} from ${selectedSaveState.game}? This action cannot be undone.`}
+          confirmText="DELETE SAVE"
+          cancelText="CANCEL"
+          type="danger"
+        >
+          <div className="text-pixel text-sm text-ocean-dark">
+            <div className="font-bold mb-2">This will permanently delete:</div>
+            <ul className="text-xs text-left space-y-1">
+              <li>• Save slot {selectedSaveState.slot}</li>
+              <li>• All progress saved in this slot</li>
+              <li>• Screenshot (if any)</li>
+            </ul>
+          </div>
+        </ConfirmationModal>
+      )}
     </div>
   );
 }

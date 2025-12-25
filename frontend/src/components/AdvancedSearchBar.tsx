@@ -6,6 +6,10 @@ import {
   advancedSearchApi,
   savedSearchApi,
 } from '../services/api';
+import { SUPPORTED_SYSTEMS } from '../constants/systems';
+import { toast } from '../utils/toast';
+import { ConfirmationModal } from './ConfirmationModal';
+import { Tooltip, InfoIcon } from './Tooltip';
 
 interface AdvancedSearchBarProps {
   onResults: (games: Game[]) => void;
@@ -17,6 +21,8 @@ export function AdvancedSearchBar({ onResults }: AdvancedSearchBarProps) {
   const [showSavedSearches, setShowSavedSearches] = useState(false);
   const [showSaveModal, setShowSaveModal] = useState(false);
   const [saveSearchName, setSaveSearchName] = useState('');
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [searchToDelete, setSearchToDelete] = useState<{ id: string; name: string } | null>(null);
 
   // Search Parameters
   const [query, setQuery] = useState('');
@@ -30,10 +36,8 @@ export function AdvancedSearchBar({ onResults }: AdvancedSearchBarProps) {
 
   const [searching, setSearching] = useState(false);
 
-  const systems = [
-    'nes', 'snes', 'gb', 'gbc', 'gba', 'n64', 'nds',
-    'genesis', 'sms', 'gg', 'psx', 'psp'
-  ];
+  // All available systems
+  const systems = SUPPORTED_SYSTEMS.map(s => s.id);
 
   const genres = [
     'Action', 'Adventure', 'RPG', 'Strategy', 'Puzzle',
@@ -70,9 +74,9 @@ export function AdvancedSearchBar({ onResults }: AdvancedSearchBarProps) {
 
       const response = await advancedSearchApi.search(params);
       onResults(response.data.games);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Search failed:', error);
-      alert('Search failed. Please try again.');
+      toast.error(error, 'Search Failed');
     } finally {
       setSearching(false);
     }
@@ -80,7 +84,7 @@ export function AdvancedSearchBar({ onResults }: AdvancedSearchBarProps) {
 
   const handleSaveSearch = async () => {
     if (!saveSearchName.trim()) {
-      alert('Please enter a name for this search');
+      toast.warning('Please enter a name for this search', 'Name Required');
       return;
     }
 
@@ -97,13 +101,13 @@ export function AdvancedSearchBar({ onResults }: AdvancedSearchBarProps) {
         players: players ? parseInt(players) : undefined,
       });
 
-      alert('✅ Search saved successfully!');
+      toast.success('Search Saved', `"${saveSearchName}" saved successfully`);
       setSaveSearchName('');
       setShowSaveModal(false);
       loadSavedSearches();
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to save search:', error);
-      alert('Failed to save search');
+      toast.error(error, 'Failed to Save Search');
     }
   };
 
@@ -127,15 +131,21 @@ export function AdvancedSearchBar({ onResults }: AdvancedSearchBarProps) {
     }
   };
 
-  const handleDeleteSearch = async (id: string) => {
-    if (!confirm('Delete this saved search?')) return;
+  const handleDeleteSearch = (id: string, name: string) => {
+    setSearchToDelete({ id, name });
+    setShowDeleteConfirm(true);
+  };
+
+  const confirmDeleteSearch = async () => {
+    if (!searchToDelete) return;
 
     try {
-      await savedSearchApi.deleteSavedSearch(id);
+      await savedSearchApi.deleteSavedSearch(searchToDelete.id);
+      toast.success('Search Deleted', `"${searchToDelete.name}" has been removed`);
       loadSavedSearches();
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to delete search:', error);
-      alert('Failed to delete search');
+      toast.error(error, 'Failed to Delete Search');
     }
   };
 
@@ -154,7 +164,12 @@ export function AdvancedSearchBar({ onResults }: AdvancedSearchBarProps) {
     <div className="border-4 border-wood-brown bg-sand-beige p-4 mb-4">
       {/* Header */}
       <div className="flex items-center justify-between mb-3">
-        <h3 className="text-pixel text-sm text-ocean-dark">🔍 ADVANCED SEARCH</h3>
+        <div className="flex items-center gap-2">
+          <h3 className="text-pixel text-sm text-ocean-dark">🔍 ADVANCED SEARCH</h3>
+          <Tooltip content="Use advanced filters to narrow down your game library by system, genre, year, and more. Save frequently used searches for quick access.">
+            <InfoIcon className="w-3 h-3" />
+          </Tooltip>
+        </div>
         <div className="flex gap-2">
           <button
             onClick={() => setShowSavedSearches(!showSavedSearches)}
@@ -192,7 +207,7 @@ export function AdvancedSearchBar({ onResults }: AdvancedSearchBarProps) {
                   {search.name}
                 </button>
                 <button
-                  onClick={() => handleDeleteSearch(search.id)}
+                  onClick={() => handleDeleteSearch(search.id, search.name)}
                   className="btn-retro text-[8px] px-2 py-1 bg-blood-red ml-2"
                 >
                   🗑️
@@ -267,7 +282,12 @@ export function AdvancedSearchBar({ onResults }: AdvancedSearchBarProps) {
           {/* Year Range */}
           <div className="grid grid-cols-2 gap-2">
             <div>
-              <label className="text-pixel text-[10px] text-ocean-dark block mb-1">YEAR FROM:</label>
+              <div className="flex items-center gap-1 mb-1">
+                <label className="text-pixel text-[10px] text-ocean-dark">YEAR FROM:</label>
+                <Tooltip content="Filter games by their original release year. Set a range to find games from a specific era.">
+                  <InfoIcon className="w-2.5 h-2.5" />
+                </Tooltip>
+              </div>
               <input
                 type="number"
                 value={yearFrom}
@@ -294,7 +314,12 @@ export function AdvancedSearchBar({ onResults }: AdvancedSearchBarProps) {
 
           {/* Players */}
           <div>
-            <label className="text-pixel text-[10px] text-ocean-dark block mb-1">PLAYERS:</label>
+            <div className="flex items-center gap-1 mb-1">
+              <label className="text-pixel text-[10px] text-ocean-dark">PLAYERS:</label>
+              <Tooltip content="Filter by the maximum number of players supported. Great for finding multiplayer games!">
+                <InfoIcon className="w-2.5 h-2.5" />
+              </Tooltip>
+            </div>
             <select
               value={players}
               onChange={(e) => setPlayers(e.target.value)}
@@ -319,13 +344,14 @@ export function AdvancedSearchBar({ onResults }: AdvancedSearchBarProps) {
         >
           {searching ? '⏳ SEARCHING...' : '🔍 SEARCH'}
         </button>
-        <button
-          onClick={() => setShowSaveModal(true)}
-          className="btn-retro text-[10px] px-3 bg-pirate-gold"
-          title="Save this search"
-        >
-          💾 SAVE
-        </button>
+        <Tooltip content="Save your current search filters to quickly access them later. Perfect for frequent searches!">
+          <button
+            onClick={() => setShowSaveModal(true)}
+            className="btn-retro text-[10px] px-3 bg-pirate-gold"
+          >
+            💾 SAVE
+          </button>
+        </Tooltip>
         <button
           onClick={clearFilters}
           className="btn-retro text-[10px] px-3 bg-wood-brown"
@@ -364,6 +390,20 @@ export function AdvancedSearchBar({ onResults }: AdvancedSearchBarProps) {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {searchToDelete && (
+        <ConfirmationModal
+          isOpen={showDeleteConfirm}
+          onClose={() => setShowDeleteConfirm(false)}
+          onConfirm={confirmDeleteSearch}
+          title="Delete Saved Search"
+          message={`Are you sure you want to delete "${searchToDelete.name}"? You will need to recreate this search if you want to use it again.`}
+          confirmText="DELETE"
+          cancelText="CANCEL"
+          type="warning"
+        />
       )}
     </div>
   );
