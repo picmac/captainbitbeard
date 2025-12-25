@@ -1,0 +1,21 @@
+# Build outputs
+dist/
+build/
+coverage/
+
+# E2E tests (use Playwright's own linting)
+e2e/
+
+# Node modules
+node_modules/
+
+# Environment files
+.env
+.env.*
+
+# Test results
+test-results/
+playwright-report/
+
+# Generated files
+*.generated.ts
