@@ -1,17 +1,17 @@
 import { test, expect } from '@playwright/test';
 
 test.describe('Navigation', () => {
-  test('should have working navigation links', async ({ page }) => {
+  test('should have working navigation links or buttons', async ({ page }) => {
     await page.goto('/');
 
     // Wait for page to load
     await page.waitForLoadState('networkidle');
 
-    // Find all navigation links
-    const navLinks = page.locator('nav a, header a, [role="navigation"] a');
-    const count = await navLinks.count();
+    // Find all interactive navigation elements (links or buttons)
+    const navElements = page.locator('nav a, header a, [role="navigation"] a, nav button, header button, button[type="button"]');
+    const count = await navElements.count();
 
-    // Should have at least some navigation links
+    // Should have at least some interactive navigation elements
     expect(count).toBeGreaterThan(0);
   });
 

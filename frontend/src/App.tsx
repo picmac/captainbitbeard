@@ -11,6 +11,7 @@ import { CollectionDetailPage } from './pages/CollectionDetailPage';
 import { UserProfilePage } from './pages/UserProfilePage';
 import { SharedCollectionPage } from './pages/SharedCollectionPage';
 import { SaveStatesPage } from './pages/SaveStatesPage';
+import NotFoundPage from './pages/NotFoundPage';
 import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts';
 import { KeyboardShortcutsHelp } from './components/KeyboardShortcutsHelp';
 import { SkipToContent } from './components/SkipToContent';
@@ -38,6 +39,7 @@ function App() {
         <Route path="/profile/:userId" element={<UserProfilePage />} />
         <Route path="/save-states" element={<SaveStatesPage />} />
         <Route path="/admin" element={<AdminPage />} />
+        <Route path="*" element={<NotFoundPage />} />
       </Routes>
 
       {/* Global Keyboard Shortcuts Help */}
