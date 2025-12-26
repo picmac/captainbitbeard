@@ -1,0 +1,90 @@
+/* ============================================
+   PIXEL BACKGROUND STYLES
+   ============================================ */
+
+.pixel-background {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  image-rendering: pixelated;
+  image-rendering: -moz-crisp-edges;
+  image-rendering: crisp-edges;
+  pointer-events: none;
+}
+
+/* Ocean Waves */
+.ocean-waves {
+  z-index: 1;
+}
+
+/* Floating Clouds */
+.floating-clouds {
+  z-index: 2;
+}
+
+/* Pirate Ship */
+.pirate-ship {
+  z-index: 3;
+}
+
+/* Falling Coins */
+.falling-coins {
+  z-index: 10;
+}
+
+/* Starry Sky */
+.starry-sky {
+  z-index: 0;
+  background: linear-gradient(180deg, #0a0a2e 0%, #16213e 100%);
+}
+
+/* Combined Pirate Scene */
+.pirate-scene {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background: linear-gradient(180deg, #0a0a2e 0%, #16213e 50%, #1e3a8a 100%);
+}
+
+.pirate-scene .layer {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.pirate-scene .layer-sky {
+  z-index: 1;
+}
+
+.pirate-scene .layer-clouds {
+  z-index: 2;
+}
+
+.pirate-scene .layer-ocean {
+  z-index: 3;
+}
+
+.pirate-scene .layer-ship {
+  z-index: 4;
+}
+
+/* Parallax Effect */
+.pirate-scene.parallax .layer-clouds {
+  transform: translateZ(-20px) scale(1.1);
+}
+
+.pirate-scene.parallax .layer-ship {
+  transform: translateZ(10px) scale(0.95);
+}
+
+/* Reduced Motion Support */
+@media (prefers-reduced-motion: reduce) {
+  .pixel-background canvas {
+    animation: none;
+  }
+}

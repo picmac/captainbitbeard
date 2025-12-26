@@ -1,0 +1,611 @@
+/* ============================================
+   PAGE TRANSITIONS STYLES
+   ============================================ */
+
+.page-transition {
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+
+/* ============================================
+   PIXEL DISSOLVE TRANSITION
+   ============================================ */
+
+.pixel-dissolve-transition {
+  image-rendering: pixelated;
+  image-rendering: -moz-crisp-edges;
+  image-rendering: crisp-edges;
+}
+
+/* ============================================
+   TV STATIC TRANSITION
+   ============================================ */
+
+.tv-static-transition {
+  image-rendering: pixelated;
+  image-rendering: -moz-crisp-edges;
+  image-rendering: crisp-edges;
+  animation: tv-static-flicker 0.1s steps(1) infinite;
+}
+
+@keyframes tv-static-flicker {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.95;
+  }
+}
+
+/* ============================================
+   SCREEN SLIDE TRANSITIONS
+   ============================================ */
+
+.page-transition--screen-slide-left.page-transition--active {
+  animation: screen-slide-left 1s ease-in-out;
+}
+
+.page-transition--screen-slide-right.page-transition--active {
+  animation: screen-slide-right 1s ease-in-out;
+}
+
+.page-transition--screen-slide-up.page-transition--active {
+  animation: screen-slide-up 1s ease-in-out;
+}
+
+.page-transition--screen-slide-down.page-transition--active {
+  animation: screen-slide-down 1s ease-in-out;
+}
+
+@keyframes screen-slide-left {
+  0% {
+    transform: translateX(0);
+  }
+  50% {
+    transform: translateX(-100%);
+  }
+  51% {
+    transform: translateX(100%);
+  }
+  100% {
+    transform: translateX(0);
+  }
+}
+
+@keyframes screen-slide-right {
+  0% {
+    transform: translateX(0);
+  }
+  50% {
+    transform: translateX(100%);
+  }
+  51% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(0);
+  }
+}
+
+@keyframes screen-slide-up {
+  0% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-100%);
+  }
+  51% {
+    transform: translateY(100%);
+  }
+  100% {
+    transform: translateY(0);
+  }
+}
+
+@keyframes screen-slide-down {
+  0% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(100%);
+  }
+  51% {
+    transform: translateY(-100%);
+  }
+  100% {
+    transform: translateY(0);
+  }
+}
+
+/* ============================================
+   SCANLINE WIPE TRANSITION
+   ============================================ */
+
+.scanline-wipe-transition {
+  background: linear-gradient(
+    to bottom,
+    transparent 0%,
+    transparent 49%,
+    #FFD700 49%,
+    #FFD700 51%,
+    transparent 51%,
+    transparent 100%
+  );
+  background-size: 100% 200%;
+  background-position: 0 0;
+}
+
+.scanline-wipe-transition--down {
+  animation: scanline-wipe-down 1s ease-in-out forwards;
+}
+
+.scanline-wipe-transition--up {
+  animation: scanline-wipe-up 1s ease-in-out forwards;
+}
+
+@keyframes scanline-wipe-down {
+  0% {
+    background-position: 0 -100%;
+  }
+  100% {
+    background-position: 0 100%;
+  }
+}
+
+@keyframes scanline-wipe-up {
+  0% {
+    background-position: 0 100%;
+  }
+  100% {
+    background-position: 0 -100%;
+  }
+}
+
+/* ============================================
+   POWER OFF TRANSITION
+   ============================================ */
+
+.page-transition--power-off.page-transition--active {
+  animation: power-off 0.8s ease-out forwards;
+}
+
+@keyframes power-off {
+  0% {
+    transform: scaleY(1) scaleX(1);
+    opacity: 1;
+    filter: brightness(1);
+  }
+  50% {
+    transform: scaleY(0.01) scaleX(1);
+    opacity: 1;
+    filter: brightness(3);
+  }
+  100% {
+    transform: scaleY(0.001) scaleX(0);
+    opacity: 0;
+    filter: brightness(0);
+  }
+}
+
+/* ============================================
+   POWER ON TRANSITION
+   ============================================ */
+
+.page-transition--power-on.page-transition--active {
+  animation: power-on 1s ease-out forwards;
+}
+
+@keyframes power-on {
+  0% {
+    transform: scaleY(0.001) scaleX(0);
+    opacity: 0;
+    filter: brightness(5);
+  }
+  50% {
+    transform: scaleY(0.01) scaleX(1);
+    opacity: 1;
+    filter: brightness(2);
+  }
+  100% {
+    transform: scaleY(1) scaleX(1);
+    opacity: 1;
+    filter: brightness(1);
+  }
+}
+
+/* ============================================
+   GLITCH TRANSITION
+   ============================================ */
+
+.glitch-transition {
+  background: linear-gradient(
+    to right,
+    rgba(255, 0, 0, 0.3) 0%,
+    transparent 20%,
+    transparent 40%,
+    rgba(0, 255, 0, 0.3) 40%,
+    transparent 60%,
+    transparent 80%,
+    rgba(0, 0, 255, 0.3) 80%,
+    transparent 100%
+  );
+  animation: glitch-effect 0.6s steps(1) forwards;
+}
+
+@keyframes glitch-effect {
+  0% {
+    transform: translateX(0) scaleX(1);
+    opacity: 1;
+  }
+  10% {
+    transform: translateX(-5px) scaleX(1.02);
+  }
+  20% {
+    transform: translateX(5px) scaleX(0.98);
+  }
+  30% {
+    transform: translateX(-3px) scaleX(1.01);
+  }
+  40% {
+    transform: translateX(3px) scaleX(0.99);
+  }
+  50% {
+    transform: translateX(-2px) scaleX(1.005);
+  }
+  60% {
+    transform: translateX(2px) scaleX(0.995);
+  }
+  70% {
+    transform: translateX(-1px) scaleX(1.002);
+  }
+  80% {
+    transform: translateX(1px) scaleX(0.998);
+  }
+  90% {
+    transform: translateX(0) scaleX(1);
+  }
+  100% {
+    transform: translateX(0) scaleX(1);
+    opacity: 0;
+  }
+}
+
+/* ============================================
+   FADE TRANSITION
+   ============================================ */
+
+.page-transition--fade.page-transition--active {
+  animation: fade-transition 1s ease-in-out;
+}
+
+@keyframes fade-transition {
+  0% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0;
+  }
+  100% {
+    opacity: 1;
+  }
+}
+
+/* ============================================
+   ROUTE TRANSITION WRAPPER
+   ============================================ */
+
+.route-transition {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+
+/* ============================================
+   TRANSITION STAGE CLASSES
+   ============================================ */
+
+.transition-exiting {
+  animation: transition-exit 0.5s ease-in-out forwards;
+}
+
+.transition-entering {
+  animation: transition-enter 0.5s ease-in-out forwards;
+}
+
+@keyframes transition-exit {
+  from {
+    opacity: 1;
+    transform: scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+}
+
+@keyframes transition-enter {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* ============================================
+   LOADING TRANSITION
+   ============================================ */
+
+.loading-transition {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: #000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  animation: loading-fade-in 0.3s ease-in-out;
+}
+
+.loading-transition__content {
+  font-family: 'Press Start 2P', 'Courier New', monospace;
+  font-size: 1rem;
+  color: #FFD700;
+  text-shadow:
+    2px 2px 0 rgba(0, 0, 0, 0.5),
+    0 0 10px rgba(255, 215, 0, 0.5);
+  letter-spacing: 0.1em;
+  animation: loading-pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes loading-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes loading-pulse {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.5;
+    transform: scale(1.05);
+  }
+}
+
+/* ============================================
+   PIXEL GRID TRANSITION
+   ============================================ */
+
+.pixel-grid-transition {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-image:
+    repeating-linear-gradient(
+      0deg,
+      rgba(0, 0, 0, 0.5) 0px,
+      rgba(0, 0, 0, 0.5) 4px,
+      transparent 4px,
+      transparent 8px
+    ),
+    repeating-linear-gradient(
+      90deg,
+      rgba(0, 0, 0, 0.5) 0px,
+      rgba(0, 0, 0, 0.5) 4px,
+      transparent 4px,
+      transparent 8px
+    );
+  image-rendering: pixelated;
+  z-index: 9998;
+  pointer-events: none;
+  animation: pixel-grid-fade 1s ease-in-out forwards;
+}
+
+@keyframes pixel-grid-fade {
+  0% {
+    opacity: 0;
+  }
+  50% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+/* ============================================
+   SCREEN TEAR TRANSITION
+   ============================================ */
+
+.screen-tear-transition {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 9999;
+  pointer-events: none;
+  animation: screen-tear 0.8s steps(10) forwards;
+}
+
+@keyframes screen-tear {
+  0% {
+    clip-path: inset(0 0 0 0);
+  }
+  10% {
+    clip-path: polygon(
+      0 0,
+      100% 0,
+      100% 10%,
+      95% 10%,
+      95% 20%,
+      100% 20%,
+      100% 100%,
+      0 100%
+    );
+  }
+  20% {
+    clip-path: polygon(
+      0 0,
+      100% 0,
+      100% 20%,
+      90% 20%,
+      90% 40%,
+      95% 40%,
+      95% 100%,
+      0 100%
+    );
+  }
+  40% {
+    clip-path: polygon(
+      0 0,
+      100% 0,
+      100% 40%,
+      85% 40%,
+      85% 60%,
+      90% 60%,
+      90% 100%,
+      0 100%
+    );
+  }
+  60% {
+    clip-path: polygon(
+      0 0,
+      100% 0,
+      100% 60%,
+      80% 60%,
+      80% 80%,
+      85% 80%,
+      85% 100%,
+      0 100%
+    );
+  }
+  80% {
+    clip-path: polygon(
+      0 0,
+      100% 0,
+      100% 80%,
+      75% 80%,
+      75% 90%,
+      80% 90%,
+      80% 100%,
+      0 100%
+    );
+  }
+  100% {
+    clip-path: inset(100% 0 0 0);
+  }
+}
+
+/* ============================================
+   HORIZONTAL BLINDS TRANSITION
+   ============================================ */
+
+.horizontal-blinds-transition {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(
+    to bottom,
+    #000 0%,
+    #000 10%,
+    transparent 10%,
+    transparent 20%,
+    #000 20%,
+    #000 30%,
+    transparent 30%,
+    transparent 40%,
+    #000 40%,
+    #000 50%,
+    transparent 50%,
+    transparent 60%,
+    #000 60%,
+    #000 70%,
+    transparent 70%,
+    transparent 80%,
+    #000 80%,
+    #000 90%,
+    transparent 90%,
+    transparent 100%
+  );
+  background-size: 100% 200%;
+  z-index: 9999;
+  pointer-events: none;
+  animation: horizontal-blinds 1s ease-in-out forwards;
+}
+
+@keyframes horizontal-blinds {
+  0% {
+    background-position: 0 0;
+  }
+  50% {
+    background-position: 0 100%;
+  }
+  100% {
+    background-position: 0 200%;
+  }
+}
+
+/* ============================================
+   REDUCED MOTION SUPPORT
+   ============================================ */
+
+@media (prefers-reduced-motion: reduce) {
+  .page-transition--pixel-dissolve.page-transition--active,
+  .page-transition--tv-static.page-transition--active,
+  .page-transition--screen-slide-left.page-transition--active,
+  .page-transition--screen-slide-right.page-transition--active,
+  .page-transition--screen-slide-up.page-transition--active,
+  .page-transition--screen-slide-down.page-transition--active,
+  .page-transition--scanline-wipe.page-transition--active,
+  .page-transition--power-off.page-transition--active,
+  .page-transition--power-on.page-transition--active,
+  .page-transition--glitch.page-transition--active,
+  .page-transition--fade.page-transition--active,
+  .scanline-wipe-transition,
+  .glitch-transition,
+  .pixel-grid-transition,
+  .screen-tear-transition,
+  .horizontal-blinds-transition {
+    animation: fade-transition 0.5s ease-in-out;
+  }
+
+  .transition-exiting,
+  .transition-entering {
+    animation: none;
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* ============================================
+   PERFORMANCE OPTIMIZATIONS
+   ============================================ */
+
+.page-transition,
+.pixel-dissolve-transition,
+.tv-static-transition,
+.scanline-wipe-transition,
+.glitch-transition {
+  will-change: transform, opacity;
+  transform: translateZ(0);
+  backface-visibility: hidden;
+  -webkit-font-smoothing: antialiased;
+}

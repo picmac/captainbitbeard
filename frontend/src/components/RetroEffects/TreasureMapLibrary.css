@@ -1,0 +1,440 @@
+/* ============================================
+   TREASURE MAP LIBRARY STYLES
+   ============================================ */
+
+.treasure-map-library {
+  position: relative;
+  width: 100%;
+  height: 100vh;
+  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+  overflow: hidden;
+  font-family: 'Press Start 2P', 'Courier New', monospace;
+  cursor: grab;
+}
+
+.treasure-map-library:active {
+  cursor: grabbing;
+}
+
+.treasure-map-library__canvas {
+  width: 100%;
+  height: 100%;
+  image-rendering: pixelated;
+  image-rendering: -moz-crisp-edges;
+  image-rendering: crisp-edges;
+}
+
+/* ============================================
+   CONTROLS
+   ============================================ */
+
+.treasure-map-library__controls {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  z-index: 100;
+}
+
+.treasure-map-library__control-button {
+  width: 48px;
+  height: 48px;
+  background: linear-gradient(180deg, #8B4513 0%, #654321 100%);
+  border: 3px solid #DAA520;
+  border-radius: 4px;
+  color: #FFD700;
+  font-size: 1.25rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow:
+    inset 0 2px 0 rgba(255, 255, 255, 0.2),
+    0 4px 0 #B8860B,
+    0 6px 12px rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.treasure-map-library__control-button:hover {
+  background: linear-gradient(180deg, #A0522D 0%, #8B4513 100%);
+  transform: translateY(-2px);
+  box-shadow:
+    inset 0 2px 0 rgba(255, 255, 255, 0.2),
+    0 6px 0 #B8860B,
+    0 8px 16px rgba(0, 0, 0, 0.5),
+    0 0 20px rgba(255, 215, 0, 0.3);
+}
+
+.treasure-map-library__control-button:active {
+  transform: translateY(2px);
+  box-shadow:
+    inset 0 2px 0 rgba(255, 255, 255, 0.2),
+    0 2px 0 #B8860B,
+    0 4px 8px rgba(0, 0, 0, 0.5);
+}
+
+/* ============================================
+   TOOLTIP
+   ============================================ */
+
+.treasure-map-library__tooltip {
+  position: absolute;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: linear-gradient(135deg, #1E3A8A 0%, #1E40AF 100%);
+  border: 3px solid #FFD700;
+  border-radius: 8px;
+  padding: 1rem 1.5rem;
+  z-index: 100;
+  box-shadow:
+    inset 0 2px 0 rgba(255, 255, 255, 0.2),
+    0 8px 16px rgba(0, 0, 0, 0.5),
+    0 0 20px rgba(255, 215, 0, 0.3);
+  animation: tooltip-appear 0.3s ease-out;
+  pointer-events: none;
+}
+
+.treasure-map-library__tooltip-title {
+  font-size: 0.875rem;
+  color: #FFD700;
+  margin-bottom: 0.5rem;
+  text-shadow:
+    2px 2px 0 rgba(0, 0, 0, 0.5),
+    0 0 10px rgba(255, 215, 0, 0.5);
+  letter-spacing: 0.05em;
+}
+
+.treasure-map-library__tooltip-system {
+  font-size: 0.625rem;
+  color: #F5DEB3;
+  margin-bottom: 0.5rem;
+  text-shadow: 1px 1px 0 rgba(0, 0, 0, 0.5);
+}
+
+.treasure-map-library__tooltip-status {
+  font-size: 0.5rem;
+  color: #D1D5DB;
+  text-shadow: 1px 1px 0 rgba(0, 0, 0, 0.5);
+}
+
+@keyframes tooltip-appear {
+  from {
+    opacity: 0;
+    transform: translateX(-50%) translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+}
+
+/* ============================================
+   LEGEND
+   ============================================ */
+
+.treasure-map-library__legend {
+  position: absolute;
+  bottom: 20px;
+  left: 20px;
+  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+  border: 3px solid #654321;
+  border-radius: 8px;
+  padding: 1rem;
+  z-index: 100;
+  box-shadow:
+    inset 0 2px 0 rgba(255, 255, 255, 0.1),
+    0 4px 8px rgba(0, 0, 0, 0.5);
+}
+
+.treasure-map-library__legend-title {
+  font-size: 0.625rem;
+  color: #FFD700;
+  margin-bottom: 0.75rem;
+  text-shadow:
+    2px 2px 0 rgba(0, 0, 0, 0.5),
+    0 0 10px rgba(255, 215, 0, 0.5);
+  letter-spacing: 0.1em;
+  text-align: center;
+}
+
+.treasure-map-library__legend-item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 0.5rem;
+}
+
+.treasure-map-library__legend-item:last-child {
+  margin-bottom: 0;
+}
+
+.treasure-map-library__legend-icon {
+  font-size: 1rem;
+  filter: drop-shadow(2px 2px 0 rgba(0, 0, 0, 0.5));
+}
+
+.treasure-map-library__legend-label {
+  font-size: 0.5rem;
+  color: #F5DEB3;
+  text-shadow: 1px 1px 0 rgba(0, 0, 0, 0.5);
+  letter-spacing: 0.05em;
+}
+
+/* ============================================
+   MINIMAP
+   ============================================ */
+
+.treasure-map-library__minimap {
+  position: absolute;
+  top: 20px;
+  left: 20px;
+  width: 200px;
+  height: 150px;
+  background: linear-gradient(135deg, #1E3A8A 0%, #1E40AF 100%);
+  border: 3px solid #654321;
+  border-radius: 8px;
+  z-index: 100;
+  box-shadow:
+    inset 0 2px 0 rgba(255, 255, 255, 0.1),
+    0 4px 8px rgba(0, 0, 0, 0.5);
+  position: relative;
+  overflow: hidden;
+  animation: minimap-appear 0.3s ease-out;
+}
+
+.treasure-map-library__minimap-viewport {
+  position: absolute;
+  border: 2px solid #FFD700;
+  background: rgba(255, 215, 0, 0.2);
+  pointer-events: none;
+  box-shadow: 0 0 10px rgba(255, 215, 0, 0.5);
+}
+
+.treasure-map-library__minimap-marker {
+  position: absolute;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  box-shadow: 0 0 4px rgba(0, 0, 0, 0.5);
+}
+
+.treasure-map-library__minimap-marker--locked {
+  background: #6B7280;
+}
+
+.treasure-map-library__minimap-marker--available {
+  background: #FFD700;
+  box-shadow:
+    0 0 4px rgba(0, 0, 0, 0.5),
+    0 0 8px rgba(255, 215, 0, 0.5);
+}
+
+.treasure-map-library__minimap-marker--playing {
+  background: #3B82F6;
+  box-shadow:
+    0 0 4px rgba(0, 0, 0, 0.5),
+    0 0 8px rgba(59, 130, 246, 0.5);
+  animation: minimap-marker-pulse 2s ease-in-out infinite;
+}
+
+.treasure-map-library__minimap-marker--completed {
+  background: #10B981;
+}
+
+@keyframes minimap-appear {
+  from {
+    opacity: 0;
+    transform: scale(0.8);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes minimap-marker-pulse {
+  0%, 100% {
+    transform: translate(-50%, -50%) scale(1);
+  }
+  50% {
+    transform: translate(-50%, -50%) scale(1.3);
+  }
+}
+
+/* ============================================
+   RESPONSIVE DESIGN
+   ============================================ */
+
+@media (max-width: 1024px) {
+  .treasure-map-library__controls {
+    top: 10px;
+    right: 10px;
+    gap: 8px;
+  }
+
+  .treasure-map-library__control-button {
+    width: 40px;
+    height: 40px;
+    font-size: 1rem;
+  }
+
+  .treasure-map-library__legend {
+    bottom: 10px;
+    left: 10px;
+    padding: 0.75rem;
+  }
+
+  .treasure-map-library__legend-title {
+    font-size: 0.5rem;
+  }
+
+  .treasure-map-library__legend-icon {
+    font-size: 0.875rem;
+  }
+
+  .treasure-map-library__legend-label {
+    font-size: 0.4rem;
+  }
+
+  .treasure-map-library__minimap {
+    width: 150px;
+    height: 112px;
+  }
+}
+
+@media (max-width: 640px) {
+  .treasure-map-library__controls {
+    flex-direction: row;
+    top: auto;
+    bottom: 10px;
+    right: 10px;
+  }
+
+  .treasure-map-library__control-button {
+    width: 36px;
+    height: 36px;
+    font-size: 0.875rem;
+  }
+
+  .treasure-map-library__legend {
+    display: none;
+  }
+
+  .treasure-map-library__minimap {
+    width: 120px;
+    height: 90px;
+    top: 10px;
+    left: 10px;
+  }
+
+  .treasure-map-library__tooltip {
+    bottom: 60px;
+    padding: 0.75rem 1rem;
+  }
+
+  .treasure-map-library__tooltip-title {
+    font-size: 0.625rem;
+  }
+
+  .treasure-map-library__tooltip-system {
+    font-size: 0.5rem;
+  }
+
+  .treasure-map-library__tooltip-status {
+    font-size: 0.4rem;
+  }
+}
+
+/* ============================================
+   LOADING STATE
+   ============================================ */
+
+.treasure-map-library--loading {
+  position: relative;
+}
+
+.treasure-map-library--loading::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.8);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.treasure-map-library--loading::before {
+  content: 'LOADING MAP...';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 1rem;
+  color: #FFD700;
+  text-shadow:
+    2px 2px 0 rgba(0, 0, 0, 0.5),
+    0 0 10px rgba(255, 215, 0, 0.5);
+  letter-spacing: 0.1em;
+  z-index: 1001;
+  animation: loading-pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes loading-pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+/* ============================================
+   REDUCED MOTION SUPPORT
+   ============================================ */
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+
+  .treasure-map-library__minimap-marker--playing {
+    animation: none;
+  }
+}
+
+/* ============================================
+   FOCUS VISIBLE FOR ACCESSIBILITY
+   ============================================ */
+
+.treasure-map-library__control-button:focus-visible {
+  outline: 3px solid #FFD700;
+  outline-offset: 2px;
+}
+
+/* ============================================
+   PRINT STYLES
+   ============================================ */
+
+@media print {
+  .treasure-map-library__controls,
+  .treasure-map-library__tooltip,
+  .treasure-map-library__legend,
+  .treasure-map-library__minimap {
+    display: none;
+  }
+
+  .treasure-map-library__canvas {
+    width: 100%;
+    height: auto;
+  }
+}

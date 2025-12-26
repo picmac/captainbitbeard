@@ -17,6 +17,7 @@ import { KeyboardShortcutsHelp } from './components/KeyboardShortcutsHelp';
 import { SkipToContent } from './components/SkipToContent';
 import { PWAInstallPrompt } from './components/PWAInstallPrompt';
 import { OfflineIndicator } from './components/OfflineIndicator';
+import { ToastContainer } from './components/RetroEffects';
 
 function App() {
   // Enable global keyboard shortcuts
@@ -69,6 +70,9 @@ function App() {
         }}
         richColors
       />
+
+      {/* Retro Notification System */}
+      <ToastContainer />
       </main>
     </div>
   );
