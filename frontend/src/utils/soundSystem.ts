@@ -10,14 +10,20 @@ class RetroSoundSystem {
 
   constructor() {
     if (typeof window !== 'undefined') {
-      this.audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+      try {
+        const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
+        if (AudioContextClass) {
+          this.audioContext = new AudioContextClass();
+        }
+      } catch (error) {
+        // AudioContext not available (e.g., in test environment)
+        console.warn('AudioContext not available:', error);
+        this.audioContext = null;
+      }
     }
   }
 
-  private getContext(): AudioContext {
-    if (!this.audioContext) {
-      throw new Error('AudioContext not initialized');
-    }
+  private getContext(): AudioContext | null {
     return this.audioContext;
   }
 
@@ -43,6 +49,7 @@ class RetroSoundSystem {
     if (this.isMuted) return;
 
     const ctx = this.getContext();
+    if (!ctx) return;
     const oscillator = ctx.createOscillator();
     const gainNode = ctx.createGain();
 
@@ -66,6 +73,7 @@ class RetroSoundSystem {
     if (this.isMuted) return;
 
     const ctx = this.getContext();
+    if (!ctx) return;
     const oscillator = ctx.createOscillator();
     const gainNode = ctx.createGain();
 
@@ -92,6 +100,7 @@ class RetroSoundSystem {
     if (this.isMuted) return;
 
     const ctx = this.getContext();
+    if (!ctx) return;
     const oscillator = ctx.createOscillator();
     const gainNode = ctx.createGain();
 
@@ -120,6 +129,7 @@ class RetroSoundSystem {
     if (this.isMuted) return;
 
     const ctx = this.getContext();
+    if (!ctx) return;
 
     // Main melody
     const playNote = (frequency: number, startTime: number, duration: number) => {
@@ -154,6 +164,7 @@ class RetroSoundSystem {
     if (this.isMuted) return;
 
     const ctx = this.getContext();
+    if (!ctx) return;
     const oscillator = ctx.createOscillator();
     const gainNode = ctx.createGain();
 
@@ -180,6 +191,7 @@ class RetroSoundSystem {
     if (this.isMuted) return;
 
     const ctx = this.getContext();
+    if (!ctx) return;
     const oscillator = ctx.createOscillator();
     const gainNode = ctx.createGain();
 
@@ -206,6 +218,7 @@ class RetroSoundSystem {
     if (this.isMuted) return;
 
     const ctx = this.getContext();
+    if (!ctx) return;
 
     // Low boom
     const oscillator = ctx.createOscillator();
@@ -232,6 +245,7 @@ class RetroSoundSystem {
     if (this.isMuted) return;
 
     const ctx = this.getContext();
+    if (!ctx) return;
     const oscillator = ctx.createOscillator();
     const gainNode = ctx.createGain();
 
@@ -255,6 +269,7 @@ class RetroSoundSystem {
     if (this.isMuted) return;
 
     const ctx = this.getContext();
+    if (!ctx) return;
     const oscillator = ctx.createOscillator();
     const gainNode = ctx.createGain();
 
@@ -278,6 +293,7 @@ class RetroSoundSystem {
     if (this.isMuted) return;
 
     const ctx = this.getContext();
+    if (!ctx) return;
 
     // Creaking sound (low frequency modulation)
     const playCreak = (startTime: number) => {
@@ -318,6 +334,7 @@ class RetroSoundSystem {
     if (this.isMuted) return;
 
     const ctx = this.getContext();
+    if (!ctx) return;
 
     const playNote = (frequency: number, startTime: number, duration: number) => {
       const oscillator = ctx.createOscillator();
@@ -351,6 +368,7 @@ class RetroSoundSystem {
     if (this.isMuted) return;
 
     const ctx = this.getContext();
+    if (!ctx) return;
     const oscillator = ctx.createOscillator();
     const gainNode = ctx.createGain();
 
@@ -379,6 +397,7 @@ class RetroSoundSystem {
     if (this.isMuted) return;
 
     const ctx = this.getContext();
+    if (!ctx) return;
 
     // White noise for explosion
     const bufferSize = ctx.sampleRate * 0.5;
