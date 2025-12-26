@@ -5,6 +5,9 @@
 /* Import accessibility styles */
 @import './accessibility.css';
 
+/* Import mobile optimizations */
+@import './mobile.css';
+
 /* Captain Bitbeard Theme Variables */
 :root {
   /* Pirate Color Palette */

@@ -1,5 +1,4 @@
 import { Routes, Route } from 'react-router-dom';
-import { Toaster } from 'sonner';
 import { HomePage } from './pages/HomePage';
 import { GameLibraryPage } from './pages/GameLibraryPage';
 import { GameDetailsPage } from './pages/GameDetailsPage';
@@ -53,23 +52,6 @@ function App() {
 
       {/* Offline Indicator */}
       <OfflineIndicator />
-
-      {/* Toast Notifications */}
-      <Toaster
-        position="top-right"
-        toastOptions={{
-          style: {
-            background: '#e8d5b7',
-            color: '#0f4c81',
-            border: '2px solid #8b4513',
-            fontFamily: '"Press Start 2P", monospace',
-            fontSize: '10px',
-            imageRendering: 'pixelated',
-          },
-          className: 'text-pixel',
-        }}
-        richColors
-      />
 
       {/* Retro Notification System */}
       <ToastContainer />
